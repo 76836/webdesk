@@ -6,11 +6,11 @@
 </head>
 <body>
     
-<p> WebDesk launcher v1.0 </p>
+<p> WebDesk launcher v1.1 </p>
 <button class="panel"> </button>
     
     <div id="drawer">
-<img onclick="window.location.href='./settings.html'" class="icon" src="https://icons.iconarchive.com/icons/dtafalonso/android-l/512/Settings-L-icon.png" onerror="this.onerror=null; this.src='../images/icons/error.jpg'">
+<img onclick="window.location.href='./settings.html'" class="icon" src="../images/icons/settings.png" onerror="this.onerror=null; this.src='../images/icons/error.jpg'">
     </div>
 </body>
 
@@ -18,21 +18,21 @@
 
 
 //### get the apps ~
-var DEJSONIFY = localStorage.getItem('MIST_APPS');
+var DEJSONIFY = localStorage.getItem('WD_APPS');
 var apps = JSON.parse(DEJSONIFY);
 if (apps == null) {
     console.log('App index is empty, so default apps are being installed. Welcome or Welcome back!');
 
     var apps = [];
-apps[0]= "./market.html";
+apps[0]= "./market/";
 
 //write changes to localstorage
 var JSONIFY = JSON.stringify(apps);
-localStorage.setItem('MIST_APPS', JSONIFY);
-console.log('MIST_APPS='+JSONIFY);
+localStorage.setItem('WD_APPS', JSONIFY);
+console.log('WD_APPS='+JSONIFY);
 }
 else {
-    var DEJSONIFY = localStorage.getItem('MIST_APPS');
+    var DEJSONIFY = localStorage.getItem('WD_APPS');
     var apps = JSON.parse(DEJSONIFY);
     console.log('App index read succesful:');
 };
@@ -84,7 +84,7 @@ body  {
 	filter: blur(10px);
 	border:0;
 	background-color: black;
-	opacity: .3;
+	opacity: .9;
 	margin:0%;
 	width:100vw;
 	height:100vh;
@@ -95,11 +95,11 @@ body  {
     
 .icon{
     z-index:30;
-    width:16vw;
-    height:16vw;
-    border-radius: 16vw;
+    width:12vw;
+    height:12vw;
+    border-radius: 12vw;
     padding: 1.5vw;
-    margin:0;
+    margin:1vw;
     background-color: transparent;
 }
 </style>
