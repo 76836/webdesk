@@ -7,7 +7,7 @@
 <body>
     
     <div id="drawer">
-<img onclick="window.location.href='/programs/settings.html'" class="icon" src="https://icons.iconarchive.com/icons/dtafalonso/android-l/512/Settings-L-icon.png" onerror="this.onerror=null; this.src='./images/icons/error.jpg'">
+<img onclick="window.location.href='./settings.html'" class="icon" src="https://icons.iconarchive.com/icons/dtafalonso/android-l/512/Settings-L-icon.png" onerror="this.onerror=null; this.src='../images/icons/error.jpg'">
     </div>
 </body>
 
@@ -21,7 +21,7 @@ if (apps == null) {
     console.log('App index is empty, so default apps are being installed. Welcome or Welcome back!');
 
     var apps = [];
-apps[0]= "/programs/market.html";
+apps[0]= "./market.html";
 
 //write changes to localstorage
 var JSONIFY = JSON.stringify(apps);
@@ -72,13 +72,18 @@ body  {
     overflow-x: clip;
     color:white;
     min-height:100vh;
+  position: relative;
 }
 
-
-.bg-image {
-  background-color: transparent;
-  filter: blur(10px);
-  -webkit-filter: blur(10px);
+body::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: black;
+  opacity: 0.5;
 }
     
 .icon{
