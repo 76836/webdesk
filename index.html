@@ -12,6 +12,7 @@
 			position:sticky;
 			right: 0;
 			margin-right: 0%;
+			border:0;
 		}
 		.icon {
 			border-radius:4vw;
@@ -58,6 +59,7 @@
 			position:sticky;
 			right: 0;
 			margin-right: 5%;
+			border:0;
 		}
 
 	.div {
@@ -91,7 +93,7 @@
 	.divheader {
 	  cursor: move;
 	  z-index: 10;
-	  background-color: black;
+	  background-color: #005050;
 	  color: white;
 	  overflow: auto;
 	  height: 4vh;
@@ -106,7 +108,7 @@
 	<body>
 
 <div id="ActiveZone">
-	<h1>v1.0</h1>
+	<p>v1.01</p>
 </div>
 	
 		
@@ -119,7 +121,7 @@
 
 	var part1 = `<div style="" class="div" id="mydiv`;
 	var part2 = `"> 
-	  <iframe class="iframe" src="./programs/launcher"></iframe>
+	  <iframe class="iframe" src="./programs/launcher.html"></iframe>
 	  <div class="divheader" id="mydiv`;
 	var part3 = `header"><button class="buttonx" onclick="Close(`;
 	var part4 = `)">X</button><button class="buttonback" onclick="history.back()">◁</button></div>
@@ -131,13 +133,13 @@
 //wallpaper
     var BKGURL = localStorage.getItem('selectedBKGURL');
         if (BKGURL == "null" || BKGURL == "") {
-BKGURL = ".images/wallpapers/Foreshadowing.jpg";
+BKGURL = "./images/wallpapers/Foreshadowing.jpg";
 };
 
 var ExCSS1 = document.createElement("style");
   ExCSS1.innerHTML =`		body  {
 			background-image: url("`+BKGURL+`");
-  			background-color: black;
+  			background-color: darkgray;
 			background-repeat: no-repeat;
 			background-size: cover;
 			overflow-x: hidden;
