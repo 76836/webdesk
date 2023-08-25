@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>home</title>
+</head>
+<body>
+    
+    <div id="drawer">
+<img onclick="window.location.href='./programs/settings.html'" class="icon" src="https://icons.iconarchive.com/icons/dtafalonso/android-l/512/Settings-L-icon.png" onerror="this.onerror=null; this.src='./images/icons/error.jpg'">
+    </div>
+</body>
+
+<script>
+
+
+//### get the apps ~
+var DEJSONIFY = localStorage.getItem('MIST_APPS');
+var apps = JSON.parse(DEJSONIFY);
+if (apps == null) {
+    console.log('App index is empty, so default apps are being installed. Welcome or Welcome back!');
+
+    var apps = [];
+apps[0]= "./programs/market";
+
+//write changes to localstorage
+var JSONIFY = JSON.stringify(apps);
+localStorage.setItem('MIST_APPS', JSONIFY);
+console.log('MIST_APPS='+JSONIFY);
+}
+else {
+    var DEJSONIFY = localStorage.getItem('MIST_APPS');
+    var apps = JSON.parse(DEJSONIFY);
+    console.log('App index read succesful:');
+};
+console.log(apps);
+//### got the apps ~
+
+
+for (const app of apps) {
+//create app icon for each app:
+
+var element = document.createElement("img");
+     element.appendChild(document.createTextNode(app));
+     element.setAttribute('onclick', "window.location.href='"+app+"'");
+     element.setAttribute('class', "icon");
+     element.setAttribute('src', app+"/apple-touch-icon.png");
+    element.setAttribute('ONERROR', " this.src='"+app+'/icon152.png'+"'");
+    element.setAttribute('ONERROR', " this.src='"+app+'/icon.svg'+"'");
+    element.setAttribute('ONERROR', " this.src='"+app+'/icon-512.png'+"'");
+    element.setAttribute('ONERROR', " this.src='"+app+'/favicon.png'+"'");
+     element.setAttribute('ONERROR', "this.onerror=null; this.src='"+app+'/favicon.ico'+"'");
+     var page = document.getElementById("drawer");
+     page.appendChild(element);
+
+
+
+
+
+
+
+
+console.log(' app icon for: \n'+app+'\n loaded');
+};
+
+
+
+</script>
+
+<style>
+body  {
+    background-color: transparent;
+    overflow-x: clip;
+    color:white;
+    min-height:100vh;
+.icon{
+    width:16vw;
+    height:16vw;
+    border-radius: 16vw;
+    padding: 1.5vw;
+    margin:0;
+    background-color: transparent;
+}
+</style>
+</html>
