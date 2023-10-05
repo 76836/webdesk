@@ -5,12 +5,11 @@
     <title>home</title>
 </head>
 <body>
-    
-<p> WebDesk launcher v1.1 </p>
+
 <button class="panel"> </button>
     
     <div id="drawer">
-<img onclick="window.location.href='./settings.html'" class="icon" src="../images/icons/settings.png" onerror="this.onerror=null; this.src='../images/icons/error.jpg'">
+<img onclick="window.location.href='./settings'" class="icon" src="./settings/apple-touch-icon.png" onerror="this.onerror=null; this.src='../images/icons/error.jpg'">
     </div>
 </body>
 
@@ -48,11 +47,7 @@ var element = document.createElement("img");
      element.setAttribute('onclick', "window.location.href='"+app+"'");
      element.setAttribute('class', "icon");
      element.setAttribute('src', app+"/apple-touch-icon.png");
-    element.setAttribute('ONERROR', " this.src='"+app+'/icon152.png'+"'");
-    element.setAttribute('ONERROR', " this.src='"+app+'/icon.svg'+"'");
-    element.setAttribute('ONERROR', " this.src='"+app+'/icon-512.png'+"'");
-    element.setAttribute('ONERROR', " this.src='"+app+'/favicon.png'+"'");
-     element.setAttribute('ONERROR', "this.onerror=null; this.src='"+app+'/favicon.ico'+"'");
+     element.setAttribute('ONERROR', "this.onerror=null; this.src='../images/icons/error.jpg'");
      var page = document.getElementById("drawer");
      page.appendChild(element);
 
@@ -78,19 +73,31 @@ body  {
     background-color: transparent;
 }
 
-
 .panel {
         z-index:-2;
-	filter: blur(10px);
 	border:0;
 	background-color: black;
-	opacity: .9;
+	opacity: .4;
 	margin:0%;
 	width:100vw;
 	height:100vh;
 	position:fixed;
 	top:0;
 	left:0;
+	transition-duration: 0.2s;
+}
+.panel:Hover {
+        z-index:-2;
+	border:0;
+	background-color: black;
+	opacity: .8;
+	margin:0%;
+	width:100vw;
+	height:100vh;
+	position:fixed;
+	top:0;
+	left:0;
+	transition-duration: 0.2s;
 }
     
 .icon{
@@ -100,7 +107,17 @@ body  {
     border-radius: 12vw;
     padding: 1.5vw;
     margin:1vw;
+    background-color: rgba(255, 255, 255, 0.3);
+    transition-duration: 0.2s;
+}
+.icon:Hover {
+    z-index:30;
+    width:12vw;
+    height:12vw;
+    padding: 1.5vw;
+    margin:1vw;
     background-color: transparent;
+    transition-duration: 0.2s;
 }
 </style>
 </html>
