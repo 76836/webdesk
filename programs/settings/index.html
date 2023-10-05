@@ -8,8 +8,8 @@
 <body>
     
  <h1 style="width:100%; text-align: center;"> SETTINGS </h1>
- <button class="elementbasic" onclick="alert('WebDesk version 1.01 by 76836');">info</button>
- <button class="elementbasic" onclick="location.reload();">Restart WebDesk</button>
+ <button class="elementbasic" onclick="alert('WebDesk v1.02 \n76836');">info</button>
+ <button class="elementbasic" onclick="window.top.location.reload();">Restart WebDesk</button>
 
  <p style="font-size:large; width:100%; text-align: center;">Install a web app:</p>
  <input class="elementbasic" id="AppUrlBox" placeholder="https://youtube.com" type=text>
@@ -62,7 +62,7 @@ BKGURL = "./Foreshadowing.jpg";
 
 var ExCSS1 = document.createElement("style");
   ExCSS1.innerHTML =`		body  {
-	background-color: black;
+	background-color: rgba(155, 255, 255, 0.5);
 	background-repeat: no-repeat;
 	background-size: cover;
 	overflow-x: hidden;
@@ -113,9 +113,12 @@ function A2HS() {
 function uninstall() {
             //read text box contents
           var NUM=document.getElementById('AppNUMBox').value;
-	  var NUM = Number(NUM);
-	         // confirm uninstall
-          if (confirm('do you really want to uninstall #'+NUM) == false) {
+	  var NUM = Number(NUM)+3;
+	  //get the app's name
+	  var DEJSONIFY = localStorage.getItem('WD_APPS');
+          var apps = JSON.parse(DEJSONIFY);
+	  // confirm uninstall
+          if (confirm('do you really want to uninstall '+apps[NUM]+' ?') == false) {
 		  alert('operation cancelled');
 		  return;
 	  };
@@ -123,7 +126,7 @@ function uninstall() {
             //retrieve apps index
           var DEJSONIFY = localStorage.getItem('WD_APPS');
           var apps = JSON.parse(DEJSONIFY);
-            //add subject to apps index
+            //remove subject from apps index
           apps.splice(NUM, 1);
             //save the updated index
           var JSONIFY = JSON.stringify(apps);
