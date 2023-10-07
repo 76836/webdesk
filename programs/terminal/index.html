@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            height:100vh;
+            width:100vw;
+            margin:0;
+            background-color: black;
+            color: green;
+            overflow-wrap: break-word;
+            overflow-x: hidden;
+            font-size:larger;
+        }
+
+        #terminal {
+            width: 100%;
+            white-space: pre-wrap;
+        }
+
+        #input {
+            outline: none;
+            border: none;
+            width: 100%;
+            font-family: 'Courier New', monospace;
+            background-color: black;
+            color: blue;
+            margin:0;
+            font-size:larger;
+        }
+    </style>
+
+<script>
+
+
+function sleep(ms) {
+  return new Promise(
+    resolve => setTimeout(resolve, ms)
+  );
+}
+
+async function respond(outcome) {
+
+outcome = outcome.toLowerCase();
+
+if (outcome.includes("exit") && outcome.length < 12 == true) {
+console.log('keyword "exit" found');
+say('exiting...');
+await sleep(1000);
+window.location='../launcher'
+
+return;
+};
+
+
+if (outcome.includes("time") == true) {
+console.log('keywords "time" & "what" found');
+var d = new Date();
+say(d.toLocaleTimeString())
+
+return;
+};
+
+
+if (outcome.includes("directions ") && (outcome.includes(" to ") || outcome.includes("get ") == true)) {
+console.log('keywords "directions" & "to"/"get" found');
+var location = outcome.replace('directions', "");
+location = location.replace(' to ', " ");
+location = location.replace('get ', " ");
+say('getting directions to ' + location);
+window.location.href='https://www.google.com/maps/search/'+outcome ;
+return;
+};
+
+
+if (outcome.includes("help") && outcome.length < 15 == true) {
+console.log('command "help" entered');
+say('Available commands are:\n[Url]\n\nopen [app] (this will redirect you to [app].com)\n\nplay [video on youtube]\n\ndirections to | get directions to | get directions [location]\n\ncalc [simple equation]\n\nhelp\n\ntime\n\nsearch [query]\n');
+return;
+};
+
+
+if (outcome.includes("open") && outcome.length < 20 == true) {
+console.log('lets hope this app has a .com domain');
+var appname = outcome.replace('open', "");
+appname = appname.replace(/\s+/g, '')
+appname = appname.replace('.', "");
+if (appname.includes("settings")) { say('opening Akari settings'); window.location.href = './settings'; return; };
+say('redirecting you to ' + appname + ".com");
+await sleep(300);
+window.location.href = 'https://' + appname + '.com';
+return;
+};
+
+
+if (outcome.includes("youtube") || outcome.includes(" play ") == true) {
+console.log('keywords "youtube" & "search"/"play" found');
+var video = outcome.replace('youtube', "");
+video = video.replace('search', "");
+video = video.replace('play', "");
+video = video.replace(' on ', " ");
+video = video.replace(' for ', " ");
+say('looking for ' + video + " on YouTube");
+window.location.href = 'https://youtube.com/search?q=' + video;
+return;
+};
+
+
+if (outcome.includes("destruct") && outcome.includes("self") && outcome.length < 30 == true) {
+console.log('the self destruct program has been launched');
+if (outcome.includes("1")) { say('self destruct launched, goodbye.'); } else { say('passcode incorrect'); return; };
+//The pasword is actually 1234, but i'm not gonna add the code to check for the full thing.
+document.getElementById('html').innerHTML = '';
+console.clear()
+return;
+};
+
+
+if (outcome.includes("what") && outcome.includes("up") && outcome.length < 18 == true) {
+console.log('kewords "what" & "up" found');
+say('version 1.7... Now you can type commands, and I can do some basic math.');
+return;
+};
+
+
+if (outcome.includes("hello there") && outcome.length < 19 == true) {
+console.log(' I will deal with this Jedi slime myself. \n   Your move.');
+say('General Kenobi. You are a bold one.');
+
+return;
+};
+
+if (outcome.includes("hello") || outcome.includes("hi") && outcome.length < 10 == true) {
+console.log('keword "hello" or "hi" found.');
+if (outcome.includes("hi")) {
+    say('Hello there.');
+}else{
+    say('Hi!');
+}
+
+
+return;
+};
+
+if (outcome.includes("search") == true) {
+console.log('keyword "search" found.');
+var query = outcome.replace('search', "");
+query = query.replace(' for ', " ");
+say("searching for " + query);
+await sleep(300);
+window.location.href='https://bing.com/search?q='+query;
+return;
+};
+
+if (outcome.includes("calc ")) {
+const mathExpression = outcome.replace("calc ", "");
+try {
+    const result = eval(mathExpression);
+    say(result);
+} catch (error) {
+    say('Sorry, I was unable to calculate the given expression.')
+}
+return;
+};
+
+console.log('no keywords found, too bad.');
+say("Error: command not found.\n");
+
+};
+</script>
+
+</head>
+<body onclick="document.getElementById('input').focus();">
+
+
+<div id="terminal"></div>
+<input id="input" type="text" autofocus onkeydown="handleInput(event)">
+
+<script>
+    function say(text) {
+        document.getElementById('terminal').innerText += text + '\n';
+        document.getElementById('input').value = '';
+    }
+
+
+    function handleInput(event) {
+        if (event.key === 'Enter') {
+            const inputElement = document.getElementById('input');
+            const command = inputElement.value.trim();
+            say(command);
+            if (isValidURL(command)) {
+                window.location.href = command;
+            } else {
+                respond(command);
+            }
+        }
+    }
+
+    function isValidURL(url) {
+        try {
+            new URL(url);
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+    say('Webdesk Terminal with Akari, v1.0.\nType "help" for more info.\n##################################')
+</script>
+
+</body>
+</html>
