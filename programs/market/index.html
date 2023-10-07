@@ -44,7 +44,7 @@
 <div class="appdiv">
     <p class="apptitle">Calculator</p>
     <div class="line"></div>
-    <img class="icon" src="./calculator/apple-touch-icon.png">
+    <img class="icon" src="..../Mist/calculator/apple-touch-icon.png">
     <div class="buttonsdiv">
         <button class="installbutton" onclick="A2HS('./calculator');">Install</button>
         <br>
@@ -52,6 +52,17 @@
     </div>
 </div>
 
+<div class="appdiv">
+    <p class="apptitle">WebDesk Terminal</p>
+    <div class="line"></div>
+    <img class="icon" src="../terminal/apple-touch-icon.png">
+    <div class="buttonsdiv">
+        <button class="installbutton" onclick="A2HS('./terminal');">Install</button>
+        <br>
+        <button class="uninstallbutton" onclick="uninstall('./terminal');">Uninstall</button>
+    </div>
+</div>
+	
 <div class="appdiv">
     <p class="apptitle">AniWatch</p>
     <div class="line"></div>
@@ -171,7 +182,7 @@
 
 -->
                 
-	<p class="apptitle"> App index version 1. </p>
+	<p class="apptitle"> App index version 2. </p>
 </body>
 
 <script>
@@ -195,7 +206,7 @@ console.log(apps);
 
 var ExCSS1 = document.createElement("style");
   ExCSS1.innerHTML =`		body  {
-	background-color: #111111;
+	background-color:  rgba(255, 255, 255, 0.3);
 	background-repeat: no-repeat;
 	background-size: cover;
 	overflow-x: hidden;
@@ -216,11 +227,13 @@ function A2HS(APPURL) {
           var A2I = APPURL;
           console.log('A2HS:'+A2I);
           // confirm install
-          if (confirm('do you really want to install '+A2I) == false) {
+/*          if (confirm('do you really want to install '+A2I) == false) {
 		  alert('install cancelled');
 		  return;
 	  };
-            //retrieve apps index
+   */
+	  //actually don't confirm install
+          //retrieve apps index
           var DEJSONIFY = localStorage.getItem('WD_APPS');
           var apps = JSON.parse(DEJSONIFY);
             //add subject to apps index
