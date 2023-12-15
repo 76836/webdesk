@@ -1,0 +1,358 @@
+.responsetxt {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: darkcyan;
+    background-image: linear-gradient(to right, #066, #011);
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: center;
+    line-height: 30px;
+    font-size: x-large;
+    border: 2px solid black;
+    min-width: 50vw;
+}
+
+
+.command {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: #111;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: center;
+    line-height: 30px;
+    font-size: x-large;
+    float: right;
+    border: 2px solid black;
+    min-width: 50vw;
+}
+
+.box {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: transparent;
+    background-image: linear-gradient(to right, #111111, #003333, transparent);
+    color: white;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: left;
+    line-height: 30px;
+    font-size: x-large;
+    position: fixed;
+    bottom: 7px;
+    left: 96px;
+    width: calc(50% - 187px);
+    height: 70px;
+    border: 0;
+    border: 2px solid black;
+}
+
+.startbutton {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: transparent;
+    color: cyan;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: center;
+    line-height: 30px;
+    font-size: x-large;
+    position: fixed;
+    bottom: 7px;
+    left: 7px;
+    width: 84px;
+    height: 84px;
+    border: 0;
+    overflow: hidden;
+    border: 2px solid black;
+    transition-duration: 0.2s;
+}
+
+.startbutton:hover{
+    border: 2px inset cyan;
+    color: white;
+    background-color: #111111;
+}
+
+.logoutbutton {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: transparent;
+    color: black;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: center;
+    line-height: 30px;
+    font-size: x-large;
+    position: fixed;
+    bottom: 7px;
+    right: calc(50% - 22px);
+    width: 84px;
+    height: 84px;
+    border: 0;
+    overflow: hidden;
+    border: 2px solid black;
+    transition-duration: 0.2s;
+}
+
+.logoutbutton:hover{
+    border: 2px inset cyan;
+    background-color: crimson;
+    right: calc(50% - 140px);
+    width: 202px;
+}
+
+.windowstyle {
+    border: 4px solid #111111;
+    background-color: transparent;
+    margin: 0%;
+    margin-top: 7vh;
+    width: 86vw;
+    height: 80vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    margin-left: 7vw;
+    margin-right: 7vw;
+    z-index: 10;
+    border-radius: 2vh;
+}
+
+.buttonstyle {
+    border: 4px solid crimson;
+    margin: 0%;
+    width: 4vh;
+    height: 4vh;
+    background-color: darkred;
+    font-size: 0;
+    color: white;
+    border-radius: 2vh;
+    z-index: 11;
+    margin-left: 7vw;
+    margin-right: 7vw;
+    position: fixed;
+    top: calc(83vh + 7px);
+    left: 0;
+    transition-duration: 0.3s;
+}
+
+.buttonstyle:hover {
+    border: 4px inset crimson;
+    margin: 0%;
+    width: 40vw;
+    height: 5vh;
+    background-color: #111111;
+    color: white;
+    border-radius: 2.5vh;
+    z-index: 11;
+    font-size: large;
+    margin-left: 7vw;
+    margin-right: 7vw;
+    position: fixed;
+    top: calc(82vh + 7px);
+    left: 0;
+}
+
+.typingnotifier {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: transparent;
+    background-image: linear-gradient(to right, #005050, transparent);
+    color: crimson;
+    font-weight: bold;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: left;
+    line-height: 30px;
+    font-size: x-large;
+    position: fixed;
+    bottom: 96px;
+    left: 7px;
+    width: 45vw;
+    border: 0;
+    overflow: hidden;
+}
+
+.buttonx {
+    border-radius: 0px;
+    color: black;
+    height: 100%;
+    background-color: darkred;
+    position: sticky;
+    right: 0;
+    margin-right: 0%;
+    border: 0;
+    width: 4vh;
+    border-radius: 2vh;
+    font-weight: bolder;
+    transition-duration: 0.2s;
+}
+
+.buttonx:Hover {
+    border-radius: 0px;
+    color: black;
+    height: 100%;
+    background-color: red;
+    position: sticky;
+    right: 0;
+    margin-right: 0%;
+    border: 0;
+    width: 4vh;
+    border-radius: 2vh;
+    font-weight: bolder;
+    transition-duration: 0.4s;
+}
+
+.buttonback {
+    border-radius: 0px;
+    color: black;
+    height: 100%;
+    background-color: blue;
+    position: sticky;
+    right: 0;
+    margin-right: 5%;
+    border: 0;
+    width: 4vh;
+    border-radius: 2vh;
+    margin-left: 1vh;
+    font-weight: bolder;
+    transition-duration: 0.2s;
+}
+
+.buttonback:Hover {
+    border-radius: 0px;
+    color: black;
+    height: 100%;
+    background-color: cyan;
+    position: sticky;
+    right: 0;
+    margin-right: 5%;
+    border: 0;
+    width: 8vh;
+    border-radius: 2vh;
+    margin-left: 1vh;
+    font-weight: bolder;
+    transition-duration: 0.2s;
+}
+
+.icon {
+    border-radius: 4vw;
+    border: 0.5vw solid black;
+    font-size: xx-large;
+    font-weight: bolder;
+    color: black;
+    height: 6vw;
+    width: 6vw;
+    background-color: transparent;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    margin: 1vw;
+    transition-duration: 0.2s;
+}
+
+.icon:hover {
+    border-radius: 4vw;
+    border: 0.5vw inset cyan;
+    font-size: xx-large;
+    font-weight: bolder;
+    color: white;
+    height: 6vw;
+    width: 6vw;
+    background-color: transparent;
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    margin: 1vw;
+    transition-duration: 0.2s;
+}
+
+.pwricon {
+    height: 6vw;
+    width: auto;
+    background-color: transparent;
+    position: fixed;
+    right: 0;
+    bottom: 8vw;
+    margin: 1.1vw;
+}
+
+
+.div {
+    position: absolute;
+    z-index: 7;
+    background-color: transparent;
+    text-align: left;
+    border: 1px solid transparent;
+    overflow: hidden;
+    resize: both;
+    border-radius: 2vh;
+    width: 50vw;
+    height: 50vh;
+}
+
+.div:Hover {
+    position: absolute;
+    z-index: 9;
+    background-color: transparent;
+    text-align: left;
+    border: 1px solid transparent;
+    overflow: hidden;
+    resize: both;
+    border-radius: 0px;
+    transition-duration: 0s;
+    border-bottom-left-radius: 2vh;
+    border-bottom-right-radius: 2vh;
+}
+
+.div-s {
+    position: absolute;
+    left:40vw;
+    top:40vh;
+    z-index: 7;
+    text-align: left;
+    border: 1px solid crimson;
+    overflow: hidden;
+    resize: both;
+    border-radius: 2vh;
+    width: 20vw;
+    height: 20vh;
+    resize: both;
+    background-color: darkslategray;
+}
+.closed {
+    z-index: -100;
+    height: 0px;
+    width: 0px;
+    position: fixed;
+    bottom: 0;
+}
+
+.divheader {
+    cursor: move;
+    z-index: 10;
+    background-color: #005050;
+    color: white;
+    overflow: auto;
+    height: 4vh;
+    overflow: hidden;
+    border-radius: 2vh;
+    transition-duration: 0.2s;
+}
+
+.iframe {
+    width: 100%;
+    border: 0;
+    height: calc(100% - 4.4vh);
+    border-radius: 2vh;
+    transition-duration: 0.2s;
+}
+
+.iframe:Hover {
+    width: 100%;
+    border: 0;
+    height: calc(100% - 4.4vh);
+    border-radius: 0;
+    transition-duration: 0.2s;
+}
