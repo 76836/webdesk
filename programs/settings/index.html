@@ -39,7 +39,7 @@ if (apps == null) {
     console.log('heh');
 
 //load up an outstanding wallpaper
-localStorage.setItem('selectedBKGURL', "https://ih1.redbubble.net/image.1228757103.6125/st,small,845x845-pad,1000x1000,f8f8f8.jpg");
+localStorage.setItem('WebDeskSelectedBKGURL', "https://ih1.redbubble.net/image.1228757103.6125/st,small,845x845-pad,1000x1000,f8f8f8.jpg");
 alert('\n \nAwesome mode activated!\n \n');
 //write changes to localstorage
 var JSONIFY = JSON.stringify(apps);
@@ -54,7 +54,7 @@ else {
 console.log(apps);
 
 
-var BKGURL = localStorage.getItem('selectedBKGURL');
+var BKGURL = localStorage.getItem('WebDeskSelectedBKGURL');
 
         if (BKGURL == "null" || BKGURL == "") {
 BKGURL = "./Foreshadowing.jpg";
@@ -62,7 +62,7 @@ BKGURL = "./Foreshadowing.jpg";
 
 var ExCSS1 = document.createElement("style");
   ExCSS1.innerHTML =`		body  {
-	background-color: rgba(155, 255, 255, 0.5);
+	background-color: rgba(255, 255, 255, 0.5);
 	background-repeat: no-repeat;
 	background-size: cover;
 	overflow-x: hidden;
@@ -139,7 +139,7 @@ function uninstall() {
 	
  function setBKG() {
          var Url=document.getElementById('bkgurl').value;
-           localStorage.setItem('selectedBKGURL', Url);
+           localStorage.setItem('WebDeskSelectedBKGURL', Url);
 		alert('background image set to: '+Url);
         };
     
