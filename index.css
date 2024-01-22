@@ -41,11 +41,17 @@
     font-size: x-large;
     position: fixed;
     bottom: 7px;
-    left: 96px;
+    right: 96px;
     width: calc(50% - 187px);
     height: 70px;
     border: 0;
     border: 2px solid black;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transition-duration: 0.3s;
+}
+.box:hover {
+  border: 2px solid cyan;
+  transition-duration: 0.3s;
 }
 
 .startbutton {
@@ -60,13 +66,14 @@
     font-size: x-large;
     position: fixed;
     bottom: 7px;
-    left: 7px;
+    left: calc(50% - 22px);
     width: 84px;
     height: 84px;
     border: 0;
     overflow: hidden;
     border: 2px solid black;
     transition-duration: 0.2s;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }
 
 .startbutton:hover{
@@ -87,7 +94,7 @@
     font-size: x-large;
     position: fixed;
     bottom: 7px;
-    right: calc(50% - 22px);
+    left: 7px;
     width: 84px;
     height: 84px;
     border: 0;
@@ -102,6 +109,36 @@
     right: calc(50% - 140px);
     width: 202px;
 }
+
+
+.sendbutton {
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: transparent;
+    color: cyan;
+    background-repeat: repeat-x;
+    background-size: auto 100%;
+    text-align: center;
+    line-height: 30px;
+    font-size: x-large;
+    position: fixed;
+    bottom: 7px;
+    right: 7px;
+    width: 84px;
+    height: 84px;
+    border: 0;
+    overflow: hidden;
+    border: 2px solid black;
+    transition-duration: 0.2s;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.sendbutton:hover{
+    border: 2px inset cyan;
+    color: white;
+    background-color: #0a192f;
+}
+
 
 .windowstyle {
     border: 4px solid #111111;
