@@ -1,35 +1,149 @@
 <!DOCTYPE html>
-<html>
-	<meta name="viewport" content="initial-scale=1">
+<html id="html" lang="en">
+
 <head>
-    <meta charset="UTF-8" />
-    <title>Confguration</title>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
 </head>
+
 <body>
+    <p style="font-size:large; width:100%; text-align: center;">WebDesk settings v2</p>
+    <h1 class="title" style="width:100%; text-align: center; color:crimson;"> SYSTEM CONFIGURATION </h1>
+    <p class="title" style="font-size:large; width:100%; text-align: center;">WebDesk v1.2 by 76836</p>
+    <button class="setbutton" onclick="window.top.location.reload();">Restart WebDesk</button>
+   
+    <p style="font-size:large; width:100%; text-align: center;">Install a web app:</p>
+    <input class="box" id="AppUrlBox" placeholder="https://bing.com" type=text>
+    <button class="setbutton" onclick="A2HS();">Install</button>
+   
+       <p style="font-size:large; width:100%; text-align: center;">Uninstall app by number:</p>
+    <input class="box" id="AppNUMBox" placeholder="app number" type=text>
+    <button class="setbutton" onclick="uninstall();">Uninstall</button>
+       
+       <p style="font-size:large; width:100%; text-align: center;">Uninstall all apps:</p>
+    <button class="setbutton" onclick="uninstallall();">uninstall all</button>
     
- <h1 style="width:100%; text-align: center;"> SETTINGS </h1>
- <button class="elementbasic" onclick="alert('WebDesk v1.02 \n76836');">info</button>
- <button class="elementbasic" onclick="window.top.location.reload();">Restart WebDesk</button>
+    <p style="font-size:large; width:100%; text-align: center;">Change wallpaper (Gifs supported):</p>
+    <input class="box" id="bkgurl" placeholder="Leave URL blank for default." type=text>
+    <button class="setbutton" onclick="setBKG();">set</button>
+   
+   </body>
+   
+    <p class="title" style="color:darkcyan;"><em> Akari AI SETTINGS:</em> </p>
 
- <p style="font-size:large; width:100%; text-align: center;">Install a web app:</p>
- <input class="elementbasic" id="AppUrlBox" placeholder="https://youtube.com" type=text>
- <button class="elementbasic" onclick="A2HS();">Install</button>
+    <div>
+        <p style="font-size:large; width:100%; text-align: center;">Change Speech Synthesis Script:</p>
+        <input class="box" id="voiceurl" placeholder="Https://example.com/speech.js" type=text>
+        <button class="setbutton" onclick="setvoice()">Install voice.</button>
+    </div>
+    <div>
+        <p style="font-size:large; width:100%; text-align: center;">Change Input Script:</p>
+        <input class="box" id="inputurl" placeholder="./wake.js" type=text>
+        <button class="setbutton" onclick="setinput()">Replace Voice Input script.</button>
+    </div>
+        <p style="font-size:large; width:100%; text-align: center;">Enable/disable AI:</p>
+        <button class="setbutton" onclick="localStorage.setItem('selectedAISetting', 'No');">Disable AI components.</button>
+        <button class="setbutton" onclick="localStorage.setItem('selectedAISetting', 'Yes');">Enable AI components.</button>
 
-	<p style="font-size:large; width:100%; text-align: center;">Uninstall app by number:</p>
- <input class="elementbasic" id="AppNUMBox" placeholder="app number" type=text>
- <button class="elementbasic" onclick="uninstall();">Uninstall</button>
-	
-	<p style="font-size:large; width:100%; text-align: center;">Uninstall all apps:</p>
- <button class="elementbasic" onclick="uninstallall();">uninstall all</button>
- 
- <p style="font-size:large; width:100%; text-align: center;">Change wallpaper (Gifs supported):</p>
- <input class="elementbasic" id="bkgurl" placeholder="Leave URL blank for default." type=text>
- <button class="elementbasic" onclick="setBKG();">set</button>
 
-</body>
+<style>
+    .title {
+        font-size: 2rem;
+        width: 100vw;
+        margin-right: 0;
+        text-align: center;
+        font-family: 'Orbitron', sans-serif;
+        word-wrap: break-word;
+        background-color: #252525;
+        color:darkcyan;
+        border-radius: 10px;
+        padding-bottom: 10px;
+        padding-top: 10px;
+    }
+
+    .box,
+    .setbutton,
+    .smallertext {
+        font-size: 1.2rem;
+        width: 100vw;
+        max-width: 100vw;
+        text-align: center;
+        margin: 0;
+        background-color: #333;
+        color: white;
+        border-radius: 8px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        transition-duration: 0.2s;
+    }
+
+    .setbutton:hover {
+        font-size: 1.2rem;
+        width: 100vw;
+        max-width: 100vw;
+        text-align: center;
+        margin: 0;
+        background-color: #252525;
+        color: darkcyan;
+        border-radius: 8px;
+        padding-bottom: 10px;
+        padding-top: 10px;
+    }
+
+    .box:hover {
+        font-size: 1.2rem;
+        width: 100vw;
+        max-width: 100vw;
+        text-align: center;
+        margin: 0;
+        background-color: #252525;
+        color: darkcyan;
+        border-radius: 8px;
+        padding-bottom: 10px;
+        padding-top: 10px;
+    }
+
+    body {
+        font-family: 'Orbitron', sans-serif;
+        background-color: black;
+        color: white;
+        margin: 0;
+        overflow-x:hidden;
+    }
+</style>
+
 
 <script>
-console.log('### S E T T I N G S   A P P');
+    var VoiceScript = localStorage.getItem('WebDeskSelectedVoiceScript');
+    document.getElementById('voiceurl').value = VoiceScript;
+
+    var InputScript = localStorage.getItem('WebDeskSelectedInputScript');
+    document.getElementById('inputurl').value = InputScript;
+
+
+
+    function setvoice() {
+        var Url = document.getElementById('voiceurl').value;
+        localStorage.setItem('WebDeskSelectedVoiceScript', Url);
+        alert('Voice synthesis program changed.');
+    };
+
+    function setinput() {
+        var Url = document.getElementById('inputurl').value;
+        localStorage.setItem('WebDeskSelectedInputScript', Url);
+        alert('Voice input program chabged.');
+    };
+
+
+
+
+
+
+    console.log('### S E T T I N G S   A P P');
 //###startup
 //Read apps index from localstorage
 
@@ -39,7 +153,7 @@ if (apps == null) {
     console.log('heh');
 
 //load up an outstanding wallpaper
-localStorage.setItem('WebDeskSelectedBKGURL', "https://ih1.redbubble.net/image.1228757103.6125/st,small,845x845-pad,1000x1000,f8f8f8.jpg");
+localStorage.setItem('WebDeskSelectedBKGURL', "https://c4.wallpaperflare.com/wallpaper/753/714/532/anime-megumin-kono-subarashii-sekai-ni-shukufuku-wo-anime-girls-wallpaper-preview.jpg");
 alert('\n \nAwesome mode activated!\n \n');
 //write changes to localstorage
 var JSONIFY = JSON.stringify(apps);
@@ -142,34 +256,4 @@ function uninstall() {
            localStorage.setItem('WebDeskSelectedBKGURL', Url);
 		alert('background image set to: '+Url);
         };
-    
 </script>
-
-
-
-
-
-<style>
-    .elementbasic {
-        width:100vw;
-        height:10vh;
-        background-color:gray;
-        border: 5px inset black;
-        margin:0;
-        padding:0px;
-        font-size: xx-large;
-	border-radius: 5px;
-    }
-    .elementbasic:hover {
-        width:100vw;
-        height:10vh;
-        background-color:darkgray;
-        border: 5px inset darkcyan;
-        margin:0;
-        padding:0px;
-        font-size: xx-large;
-	border-radius: 0px;
-    }
-</style>
-
-</html>
