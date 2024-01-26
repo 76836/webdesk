@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width" />
-    <title>WebDesk v1.1</title>
+    <title>WebDesk v3</title>
     <link rel="stylesheet" href="./index.css">
     <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
     <link rel="shortcut icon" href="./favicon.ico">
@@ -15,7 +15,7 @@
 </head>
 
 <div id="ActiveZone">
-    <p>v2</p>
+    <p>v3 (beta)</p>
 </div>
 <div id="status-area">
 
@@ -25,9 +25,9 @@
     <div class="console" id="output"></div>
     <script>
         function loadscreen(message) {
-            document.getElementById('output').innerText += message + '\n';
+            document.getElementById('output').innerHTML += message + '\n';
         };
-        loadscreen("WebDesk v2");
+        loadscreen("WebDesk v3");
     </script>
 </div>
 
@@ -77,7 +77,7 @@
 <form>
     <input type="text" id="sbox" class="box" placeholder="Akari AI Assistant"></input>
 </form>
-
+<button class="sendbutton" onclick="enter(document.getElementById('sbox').value); document.getElementById('sbox').value = '';">send</button>
 <button id="logout" class="logoutbutton" onmouseout="document.getElementById('logout').innerText = 'X';"
     onmouseover="document.getElementById('logout').innerText = 'Logout.';" onclick="Shutdown();">X</button>
 
@@ -127,8 +127,8 @@
 
     //wallpaper
     var BKGURL = localStorage.getItem('WebDeskSelectedBKGURL');
-    if (BKGURL == "null" || BKGURL == "") {
-        BKGURL = "./images/wallpapers/Foreshadowing.jpg";
+    if (BKGURL == null || BKGURL == "") {
+        BKGURL = "./images/wallpapers/water.png";
     };
 
     var ExCSS1 = document.createElement("style");
@@ -228,14 +228,11 @@
 
 
 
-    var VoiceScript = localStorage.getItem('selectedVoiceScript');
+    var VoiceScript = localStorage.getItem('WebDeskSelectedVoiceScript');
 
-    var InputScript = localStorage.getItem('selectedInputScript');
-
-    var AIScript = localStorage.getItem('selectedAIScript');
+    var InputScript = localStorage.getItem('WebDeskSelectedInputScript');
 
     var AI_is_enabled = localStorage.getItem('selectedAISetting');
-
 
     var textOnly = 'text';
 
@@ -270,9 +267,7 @@
         InputScript = "https://76836.github.io/Akari/wake.js";
     };
 
-    if (AIScript == null || AIScript == "") {
-        AIScript = "https://76836.github.io/Akari/response.js";
-    };
+        AIScript = "https://76836.github.io/webdesk/response.js";
 
     if (VoiceScript == null || VoiceScript == "") {
         VoiceScript = "https://76836.github.io/Akari/speech.js";
@@ -338,8 +333,7 @@
         Open(weblocation);
     };
     function closewindow() {
-        var spot = document.getElementById('windowspot');
-        spot.innerHTML = '';
+        Close(windows);
     };
 
     function typing(subject) {
