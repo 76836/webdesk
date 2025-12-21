@@ -232,13 +232,13 @@ class WebDesk {
 
         this.appManager.registerApp('themes', {
             title: '⚙️ Settings',
-            url: './apps/settings',
+            url: './webdesk/v4/apps/settings',
             pinned: true
         });
 
         this.appManager.registerApp('appmaker', {
             title: 'AppCenter',
-            url: './apps/appmaker',
+            url: './webdesk/v4/apps/appmaker',
             pinned: true,
             iconUrl: "https://76836.github.io/AppCenter/apple-touch-icon.png"
         });
@@ -275,4 +275,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setupLauncherClicks();
     console.log('Apps registered:', Array.from(window.WebDesk.windowManager.appConfigs.keys()));
 
+    // wallpaper for first time init
+if (!localStorage.getItem('wallpaper')) {
+  window.postMessage({
+    type: 'setWallpaper',
+    url: "https://76836.github.io/webdesk/images/wallpapers/water.png"
+  }, '*'); 
+}
 });
+
