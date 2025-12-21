@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Settings</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Roboto, sans-serif;
+            background: #f8f9fa;
+            color: #3c4043;
+        }
+
+        .settings-app {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 200px;
+            background: #fff;
+            border-right: 1px solid #dadce0;
+            padding: 20px 0;
+        }
+
+        .sidebar-item {
+            padding: 12px 24px;
+            cursor: pointer;
+            color: #5f6368;
+        }
+
+        .sidebar-item:hover {
+            background: rgba(0,0,0,0.08);
+        }
+
+        .sidebar-item.active {
+            color: #8ab4f8;
+            background: rgba(0,0,0,0.12);
+        }
+
+        .main-content {
+            flex-grow: 1;
+            padding: 24px;
+            overflow: auto;
+        }
+
+        .wallpaper-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .wallpaper-item {
+            aspect-ratio: 16/9;
+            background-size: cover;
+            background-position: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .wallpaper-item:hover {
+            transform: scale(1.02);
+        }
+
+        .wallpaper-item.active {
+            border-color: #8ab4f8;
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-app">
+        <div class="sidebar">
+            <div class="sidebar-item active">Wallpaper</div>
+            <div onclick="window.location = './appmaker.html';" class="sidebar-item">Apps</div>
+        </div>
+        <div class="main-content">
+            <h2>Wallpaper</h2>
+            <div class="wallpaper-grid">
+                <div class="wallpaper-item" style="background-image: url('https://76836.github.io/Akari/wallpapers/akari.jpg')" onclick="setWallpaper(this.style.backgroundImage)"></div>
+                <div class="wallpaper-item" style="background-image: url('https://76836.github.io/Akari/wallpapers/luna.png')" onclick="setWallpaper(this.style.backgroundImage)"></div>
+                <div class="wallpaper-item" style="background-image: url('https://76836.github.io/Akari/wallpapers/backdrop.png')" onclick="setWallpaper(this.style.backgroundImage)"></div>
+                <div class="wallpaper-item" style="background-image: url('https://76836.github.io/Akari/wallpapers/Foreshadowing.jpg')" onclick="setWallpaper(this.style.backgroundImage)"></div>
+                <div class="wallpaper-item" style="background-image: url('https://76836.github.io/Akari/wallpapers/colors.jpg')" onclick="setWallpaper(this.style.backgroundImage)"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function setWallpaper(url) {
+            // Remove url() wrapper
+            url = url.slice(4, -1).replace(/['"]/g, '');
+            // Send message to parent window
+            window.parent.postMessage({ type: 'setWallpaper', url }, '*');
+            // Update active state
+            document.querySelectorAll('.wallpaper-item').forEach(item => {
+                item.classList.toggle('active', item.style.backgroundImage.includes(url));
+            });
+        }
+    </script>
+</body>
+</html>
