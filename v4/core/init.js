@@ -226,19 +226,21 @@ class WebDesk {
         this.appManager.registerApp('chrome', {
             title: '76836',
             url: 'https://76836.github.io',
-            pinned: true
+            pinned: true,
+            iconUrl: "https://76836.github.io/apple-touch-icon.png"
         });
 
         this.appManager.registerApp('themes', {
-            title: 'Settings',
-            url: 'apps/settings.html',
+            title: '⚙️ Settings',
+            url: './apps/settings',
             pinned: true
         });
 
         this.appManager.registerApp('appmaker', {
             title: 'AppCenter',
-            url: 'apps/appmaker.html',
-            pinned: true
+            url: './apps/appmaker',
+            pinned: true,
+            iconUrl: "https://76836.github.io/AppCenter/apple-touch-icon.png"
         });
 
         // Load any custom apps from storage
@@ -272,4 +274,5 @@ document.addEventListener('DOMContentLoaded', () => {
     window.WebDesk = new WebDesk();
     setupLauncherClicks();
     console.log('Apps registered:', Array.from(window.WebDesk.windowManager.appConfigs.keys()));
+
 });
