@@ -17,7 +17,9 @@ body {
 
 .shelf {
   height: 48px;
-  background-color: rgba(0, 0, 0, 0.8);
+  background-color: rgba(0,0,0,0.5); /* Lighter grey */
+    backdrop-filter: blur(2.5px);
+    border-radius: 20px 20px 0px 0px;
   display: flex;
   align-items: center;
   padding: 0 8px;
@@ -78,12 +80,12 @@ body {
 }
 
 .app-launcher {
-  background-color: white;
+  background-color: transparent;
   /* Simple circle for launcher */
-   border: 2px solid grey;
+   border: 7px solid grey;
    /* Ensure it matches the new size */
-   width: 36px;
-   height: 36px;
+   width: 22px;
+   height: 22px;
 }
 
 .status-area {
@@ -165,10 +167,10 @@ body {
 
 .app-window {
   position: absolute;
-  background-color: white;
-  border: 3px solid #ccc;
+  background-color: transparent;
+  border: 3px solid rgba(0,0,0,0.5);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  border-radius: 8px; /* Apply border radius to all corners initially */
+  border-radius: 10px; /* Apply border radius to all corners initially */
   overflow: hidden; /* Contain iframe */
   min-width: 200px; /* Adjusted min-width */
   min-height: 150px; /* Adjusted min-height */
@@ -242,7 +244,9 @@ body {
 
 .title-bar {
   height: 35px; /* Slightly taller */
-  background-color: #f1f3f4; /* Lighter grey */
+  background-color: rgba(0,0,0,0.5); /* Lighter grey */
+    backdrop-filter: blur(2.5px);
+    color:white;
   display: flex;
   align-items: center;
   padding: 0 10px; /* More padding */
@@ -260,7 +264,7 @@ body {
   flex-grow: 1;
   font-weight: 500; /* Medium weight */
   font-size: 13px; /* Smaller font */
-  color: #3c4043; /* Dark grey text */
+  color: white; /* Dark grey text */
   padding-left: 5px;
 }
 
@@ -308,7 +312,7 @@ body {
   border: none; /* Remove iframe border */
   background-color: #f8f9fa; /* Default background for non-iframe content */
   display: flex; /* for Files app layout */
-  overflow: scroll;
+  overflow: auto;
 }
 
 .app-launcher-view {
@@ -392,7 +396,7 @@ body {
 .launcher-app {
     display: flex;
     flex-direction: column;
-    height:68px;
+    height:78px;
     align-items: center;
     text-align: center;
     padding: 10px 5px;
@@ -409,13 +413,10 @@ body {
     height: 48px;
     border-radius: 50%; /* Keep circular */
     margin-bottom: 8px;
-    background-color: rgba(232, 234, 237, 1); /* Default background */
+    background-color: rgba(0,0,0, 0.75); /* Default background */
     background-size: 60%;
     background-repeat: no-repeat;
     background-position: center;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     overflow: hidden;
 }
 
@@ -426,11 +427,6 @@ body {
     border-radius: inherit;
 }
 
-.launcher-app-icon.placeholder-icon {
-     /* Simple placeholder */
-     background-color: #e8eaed;
-     border: 1px dashed #bdc1c6;
-}
 
 .launcher-app-name {
     font-size: 12px;
@@ -442,17 +438,6 @@ body {
     width: 100%;
 }
 
-.placeholder-content {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    font-size: 1.2em;
-    color: #777;
-    text-align: center;
-    padding: 20px;
-    background-color: #f1f3f4; /* Slightly off-white background */
-}
 
 #snap-overlay {
     position: absolute;
@@ -488,8 +473,14 @@ body {
   opacity: 1;
   transform: translateY(0);
   transition: opacity 0.2s ease-out, transform 0.2s ease-out;
-  color: #a6cdeb; /* Dark text color */
+  color: white; /* Dark text color */
 }
+
+.quick-settings-menu svg{
+    fill: white;
+}
+
+
 
 .quick-settings-menu.hidden {
   opacity: 0;
@@ -513,6 +504,7 @@ body {
 .quick-settings-tile {
   background-color: rgba(0, 0, 0, 0.06);
   border-radius: 12px;
+    border:2px inset grey;
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -530,7 +522,7 @@ body {
   margin-bottom: 6px; /* Space below icon */
   width: 24px;
   height: 24px;
-  fill: #2587ff; /* Icon color */
+  fill: #25ffff; /* Icon color */
 }
 
 .quick-settings-tile .tile-label {
@@ -583,7 +575,7 @@ body {
   padding: 8px 4px 4px 4px; /* Add some padding */
   border-top: 0px solid rgba(0, 0, 0, 0.1);
   font-size: 12px;
-  color: #5f6368;
+  color: white;
 }
 
 .battery-info {
@@ -592,7 +584,7 @@ body {
   gap: 6px;
 }
 .battery-info svg {
-  margin-bottom: -2px; /* Align icon better with text */
+  margin-bottom: -1px; /* Align icon better with text */
 }
 
 .footer-icons {
@@ -620,5 +612,4 @@ body {
 .footer-icon-btn svg {
   width: 22px; /* Slightly smaller icons in footer */
   height: 22px;
-  fill: #5f6368;
 }
