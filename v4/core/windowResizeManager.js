@@ -9,23 +9,44 @@ class WindowResizeManager {
         this.startHeight = 0;
         this.minWidth = 200;
         this.minHeight = 150;
+
+        // Create the invisible shield for iframes
+        this.overlay = document.createElement('div');
+        Object.assign(this.overlay.style, {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 9999,
+            display: 'none',
+            pointerEvents: 'none'
+        });
+        document.body.appendChild(this.overlay);
+
+        this.boundHandleMouseMove = this.handleMouseMove.bind(this);
+        this.boundHandleMouseDown = this.handleMouseDown.bind(this);
+        this.boundHandleMouseUp = this.handleMouseUp.bind(this);
+        this.boundHandleDragging = this.handleDragging.bind(this);
     }
 
     setupResizeHandlers(windowEl) {
-        windowEl.addEventListener('mousemove', this.handleMouseMove.bind(this));
-        windowEl.addEventListener('mousedown', this.handleMouseDown.bind(this));
-        document.addEventListener('mouseup', this.handleMouseUp.bind(this));
-        document.addEventListener('mousemove', this.handleDragging.bind(this));
+        windowEl.addEventListener('mousedown', this.boundHandleMouseDown);
+        // Track globally so we don't lose the edge
+        document.addEventListener('mousemove', this.boundHandleMouseMove);
+        document.addEventListener('mousemove', this.boundHandleDragging);
+        document.addEventListener('mouseup', this.boundHandleMouseUp);
     }
 
     handleMouseMove(e) {
         if (this.resizingWindow) return;
 
         const edge = this.getResizeEdge(e);
+        // Only change cursor if we are over an actual window or near its edge
         if (edge) {
-            e.target.style.cursor = edge.cursor;
+            document.body.style.cursor = edge.cursor;
         } else {
-            e.target.style.cursor = '';
+            document.body.style.cursor = '';
         }
     }
 
@@ -47,7 +68,12 @@ class WindowResizeManager {
         this.startLeft = windowEl.offsetLeft;
         this.startTop = windowEl.offsetTop;
 
-        windowEl.classList.add('no-transition');
+        // Activate the shield and lock the cursor
+        this.overlay.style.display = 'block';
+        this.overlay.style.pointerEvents = 'auto';
+        this.overlay.style.cursor = edge.cursor;
+        
+        this.resizingWindow.classList.add('no-transition');
         e.preventDefault();
     }
 
@@ -56,6 +82,11 @@ class WindowResizeManager {
             this.resizingWindow.classList.remove('no-transition');
             this.resizingWindow = null;
             this.resizeEdge = null;
+            
+            // Put the shield back to sleep
+            this.overlay.style.display = 'none';
+            this.overlay.style.pointerEvents = 'none';
+            document.body.style.cursor = '';
         }
     }
 
@@ -70,7 +101,6 @@ class WindowResizeManager {
         let newLeft = this.startLeft;
         let newTop = this.startTop;
 
-        // Handle horizontal resizing
         if (this.resizeEdge.left) {
             newWidth = Math.max(this.minWidth, this.startWidth - deltaX);
             newLeft = this.startLeft + (this.startWidth - newWidth);
@@ -78,7 +108,6 @@ class WindowResizeManager {
             newWidth = Math.max(this.minWidth, this.startWidth + deltaX);
         }
 
-        // Handle vertical resizing
         if (this.resizeEdge.top) {
             newHeight = Math.max(this.minHeight, this.startHeight - deltaY);
             newTop = this.startTop + (this.startHeight - newHeight);
@@ -86,19 +115,20 @@ class WindowResizeManager {
             newHeight = Math.max(this.minHeight, this.startHeight + deltaY);
         }
 
-        // Apply new dimensions
-        this.resizingWindow.style.width = newWidth + 'px';
-        this.resizingWindow.style.height = newHeight + 'px';
-        this.resizingWindow.style.left = newLeft + 'px';
-        this.resizingWindow.style.top = newTop + 'px';
+        this.resizingWindow.style.width = `${newWidth}px`;
+        this.resizingWindow.style.height = `${newHeight}px`;
+        this.resizingWindow.style.left = `${newLeft}px`;
+        this.resizingWindow.style.top = `${newTop}px`;
     }
 
     getResizeEdge(e) {
+        // We use elementFromPoint if the target is the overlay during a drag,
+        // but for initial hover, we check the target directly.
         const windowEl = e.target.closest('.app-window');
         if (!windowEl) return null;
 
         const rect = windowEl.getBoundingClientRect();
-        const edgeSize = 8;
+        const edgeSize = 10; 
 
         const left = e.clientX - rect.left < edgeSize;
         const right = rect.right - e.clientX < edgeSize;
@@ -108,19 +138,16 @@ class WindowResizeManager {
         if (!left && !right && !top && !bottom) return null;
 
         return {
-            left,
-            right,
-            top,
-            bottom,
+            left, right, top, bottom,
             cursor: this.getResizeCursor(left, right, top, bottom)
         };
     }
 
     getResizeCursor(left, right, top, bottom) {
-        if (top && left) return 'nw-resize';
-        if (top && right) return 'ne-resize';
-        if (bottom && left) return 'sw-resize';
-        if (bottom && right) return 'se-resize';
+        if (top && left) return 'nwse-resize';
+        if (top && right) return 'nesw-resize';
+        if (bottom && left) return 'nesw-resize';
+        if (bottom && right) return 'nwse-resize';
         if (left || right) return 'ew-resize';
         if (top || bottom) return 'ns-resize';
         return 'default';
