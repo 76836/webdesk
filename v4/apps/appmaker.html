@@ -4,91 +4,111 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AppCenter</title>
-    <style>
+<style>
+    :root {
+        --primary: #d3e3fd;
+        --on-primary: #041e49;
+        --surface: #f7f9fc;
+        --secondary-container: #e8def8;
+        --on-secondary-container: #1d192b;
+        --error: #f9dedc;
+        --on-error: #410e0b;
+        --outline: #747775;
+        --text: #1f1f1f;
+        --card: #ffffff;
+    }
+
+    @media (prefers-color-scheme: dark) {
         :root {
-            --primary: #d3e3fd;
-            --on-primary: #041e49;
-            --surface: #f7f9fc;
-            --secondary-container: #e8def8;
-            --on-secondary-container: #1d192b;
-            --error: #f9dedc;
-            --on-error: #410e0b;
-            --outline: #747775;
+            --primary: #a8c7fa;
+            --on-primary: #062e6f;
+            --surface: #111318;
+            --secondary-container: #4a4458;
+            --on-secondary-container: #e8def8;
+            --error: #8c1d18;
+            --on-error: #f9dedc;
+            --outline: #939091;
+            --text: #e3e3e3;
+            --card: #1e1f20;
         }
+    }
 
-        body {
-            margin: 0;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            background: var(--surface);
-            color: #1f1f1f;
-            padding: 16px;
-            display: grid;
-            gap: 20px;
-            max-width: 800px;
-            margin: auto;
-        }
+    body {
+        margin: 0;
+        font-family: 'Segoe UI', Roboto, sans-serif;
+        background: var(--surface);
+        color: var(--text);
+        padding: 16px;
+        display: grid;
+        gap: 20px;
+        max-width: 800px;
+        margin: auto;
+        transition: background-color 0.3s ease;
+    }
 
-        section {
-            background: white;
-            padding: 24px;
-            border-radius: 28px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        }
+    section {
+        background: var(--card);
+        padding: 24px;
+        border-radius: 28px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
 
-        h2, h3 { margin-top: 0; font-weight: 400; color: #1b1b1b; letter-spacing: -0.5px; }
+    h2, h3 { margin-top: 0; font-weight: 400; color: var(--text); letter-spacing: -0.5px; }
 
-        .form-group { margin-bottom: 16px; }
-        label { display: block; margin-bottom: 6px; font-size: 0.9rem; font-weight: 500; margin-left: 4px; }
+    .form-group { margin-bottom: 16px; }
+    label { display: block; margin-bottom: 6px; font-size: 0.9rem; font-weight: 500; margin-left: 4px; }
 
-        input[type="text"], input[type="url"] {
-            width: 100%;
-            padding: 14px;
-            border: 1px solid var(--outline);
-            border-radius: 12px;
-            background: transparent;
-            box-sizing: border-box;
-        }
+    input[type="text"], input[type="url"] {
+        width: 100%;
+        padding: 14px;
+        border: 1px solid var(--outline);
+        border-radius: 12px;
+        background: transparent;
+        box-sizing: border-box;
+        color: var(--text);
+    }
 
-        .btn {
-            border: none;
-            padding: 10px 20px;
-            border-radius: 100px;
-            font-weight: 500;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
+    .btn {
+        border: none;
+        padding: 10px 20px;
+        border-radius: 100px;
+        font-weight: 500;
+        cursor: pointer;
+        font-size: 0.85rem;
+    }
 
-        .btn-primary { background: var(--primary); color: var(--on-primary); }
-        .btn-danger { background: var(--error); color: var(--on-error); }
+    .btn-primary { background: var(--primary); color: var(--on-primary); }
+    .btn-danger { background: var(--error); color: var(--on-error); }
 
-        .app-item {
-            display: flex;
-            align-items: center;
-            padding: 12px;
-            background: #fff;
-            border-radius: 16px;
-            margin-bottom: 12px;
-            border: 1px solid #f0f0f0;
-        }
+    .app-item {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+        background: var(--card);
+        border-radius: 16px;
+        margin-bottom: 12px;
+        border: 1px solid var(--outline);
+        opacity: 0.9;
+    }
 
-        .app-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
-            margin-right: 16px;
-            object-fit: cover;
-            background: #eee;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            flex-shrink: 0;
-        }
+    .app-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        object-fit: cover;
+        background: var(--secondary-container);
+        color: var(--on-secondary-container);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        flex-shrink: 0;
+    }
 
-        .app-details { flex-grow: 1; min-width: 0; }
-        .app-title { font-weight: 600; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .app-url { font-size: 0.75rem; color: var(--outline); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    </style>
+    .app-details { flex-grow: 1; min-width: 0; margin-left: 16px;}
+    .app-title { font-weight: 600; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .app-url { font-size: 0.75rem; color: var(--outline); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
 </head>
 <body>
 
@@ -113,19 +133,20 @@
     <script>
         const BASE_URL = "https://76836.github.io/";
         const catalog = [
-            { title: "Akari", path: "Akari/app" },
-            { title: "AppCenter", path: "AppCenter" },
-            { title: "Digita", path: "Digita" },
+            { title: "Akari", path: "Akari/app", iconUrl: "https://76836.github.io/Akari/logo512.png" },
+            //{ title: "AppCenter", path: "AppCenter" },
+            { title: "Digita", path: "Digita", iconUrl: "https://76836.github.io/Digita/logo/512.png" },
             { title: "side-glow", path: "side-glow" },
-            { title: "Lunabot", path: "lunabot/app" },
-            { title: "Webdesk", path: "bootloader" },
+            { title: "Lunabot", path: "lunabot/app", iconUrl: "https://76836.github.io/lunabot/app/icon-512.png" },
+            { title: "Terminal", path: "webdesk/programs/terminal", iconUrl: "https://76836.github.io/webdesk/programs/terminal/apple-touch-icon.png" },
+            //{ title: "Webdesk", path: "bootloader" },
             { title: "Animaxxer", path: "animaxxer" },
-            { title: "404", path: "404" },
-            { title: "CtrlBox", path: "ctrlbox" },
-            { title: "Wanderer", path: "Wanderer" },
-            { title: "Squares", path: "squares" },
-            { title: "meatsalad", path: "meatsalad" },
-            { title: "CalculatorXP", path: "CalculatorXP" },
+            //{ title: "404", path: "404" },
+            { title: "CtrlBox", path: "ctrlbox", iconUrl: "https://76836.github.io/ctrlbox/icon.png" },
+            //{ title: "Wanderer", path: "Wanderer" },
+            //{ title: "Squares", path: "squares" },
+            //{ title: "meatsalad", path: "meatsalad" },
+            { title: "Calculator", path: "CalculatorXP", iconUrl: "https://76836.github.io/CalculatorXP/icon.png" },
             { title: "Simple AI", path: "FREE_AI.html" },
             { title: "Image Studio", path: "pollinations_image_client.html" }
         ];
@@ -153,31 +174,33 @@
             loadApps();
         }
 
-        function loadApps() {
-            const installed = getStored();
-            const installedIds = installed.map(a => a.id);
-            
-            // Render Installed
-            const instContainer = document.getElementById('installedApps');
-            instContainer.innerHTML = '';
-            installed.forEach(app => {
-                instContainer.appendChild(createAppRow(app, true));
-            });
+      function loadApps() {
+    const installed = getStored();
+    const installedIds = installed.map(a => a.id);
+    
+    const instContainer = document.getElementById('installedApps');
+    instContainer.innerHTML = '';
+    installed.forEach(app => {
+        instContainer.appendChild(createAppRow(app, true));
+    });
 
-            // Render Marketplace (Filtered)
-            const markContainer = document.getElementById('marketplaceApps');
-            markContainer.innerHTML = '';
-            catalog.forEach(item => {
-                const fullUrl = BASE_URL + item.path;
-                const id = 'webapp-' + item.title.toLowerCase().replace(/[^a-z0-9]/g, '-');
-                if (!installedIds.includes(id)) {
-                    markContainer.appendChild(createAppRow({
-                        id: id,
-                        config: { title: item.title, url: fullUrl, iconUrl: `${fullUrl}/apple-touch-icon.png` }
-                    }, false));
-                }
-            });
+    const markContainer = document.getElementById('marketplaceApps');
+    markContainer.innerHTML = '';
+    catalog.forEach(item => {
+        const fullUrl = BASE_URL + item.path;
+        const id = 'webapp-' + item.title.toLowerCase().replace(/[^a-z0-9]/g, '-');
+        
+        // Use custom iconUrl if provided, otherwise fallback to default path
+        const resolvedIcon = item.iconUrl || `${fullUrl}/apple-touch-icon.png`;
+
+        if (!installedIds.includes(id)) {
+            markContainer.appendChild(createAppRow({
+                id: id,
+                config: { title: item.title, url: fullUrl, iconUrl: resolvedIcon }
+            }, false));
         }
+    });
+}
 
         function createAppRow(app, isInstalled) {
             const div = document.createElement('div');
@@ -212,4 +235,5 @@
         }
     </script>
 </body>
+
 </html>
