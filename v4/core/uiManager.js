@@ -98,10 +98,13 @@ class QuickSettings {
 
         this.lightModeStatus = this.menu.querySelector('#lightmode-status');
         this.batteryStatus = this.menu.querySelector('#battery-status');
+        this.fullscreenTile = this.menu.querySelector('#fullscreen-tile');
+        this.fullscreenStatus = this.menu.querySelector('#fs-status');
 
         this.setupSliders();
         this.setupTiles();
         this.initLightMode();
+        this.updateFullscreenText();
         this.initBatteryStatus();
     }
 
@@ -115,6 +118,23 @@ class QuickSettings {
     }
 
     setupTiles() {
+        if (this.fullscreenTile) {
+            this.fullscreenTile.addEventListener('click', async () => {
+                try {
+                    if (!document.fullscreenElement) {
+                        await document.documentElement.requestFullscreen();
+                    } else {
+                        await document.exitFullscreen();
+                    }
+                } catch (error) {
+                    console.error('Fullscreen toggle failed:', error);
+                }
+                this.updateFullscreenText();
+            });
+        }
+
+        document.addEventListener('fullscreenchange', () => this.updateFullscreenText());
+
         const lightModeTile = this.menu.querySelector('.lightmode-tile');
         if (lightModeTile) {
             lightModeTile.addEventListener('click', () => {
@@ -134,6 +154,13 @@ class QuickSettings {
     updateLightModeText(enabled) {
         if (this.lightModeStatus) {
             this.lightModeStatus.textContent = enabled ? 'On' : 'Off';
+        }
+    }
+
+
+    updateFullscreenText() {
+        if (this.fullscreenStatus) {
+            this.fullscreenStatus.textContent = document.fullscreenElement ? 'On' : 'Off';
         }
     }
 

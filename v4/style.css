@@ -332,9 +332,13 @@ body {
 .app-content {
     flex-grow: 1;
     border: none;
-    background-color: #f8f9fa;
+    background-color: transparent;
     display: flex;
     overflow: auto;
+}
+
+.app-content iframe {
+    background: transparent;
 }
 
 .app-launcher-view {
