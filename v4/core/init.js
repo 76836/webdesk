@@ -4,10 +4,13 @@ import { UIManager, QuickSettings } from './uiManager.js';
 
 const RECENT_LAUNCHES_KEY = 'WebDesk_recent_launches';
 const MAX_RECENT_LAUNCHES = 5;
+const LAUNCHER_SORT_KEY = 'WebDesk_launcher_sort';
 
 let launcherState = {
     filteredAppIds: [],
-    selectedIndex: 0
+    selectedIndex: 0,
+    keyboardMode: false,
+    columns: 1
 };
 
 function getRecentLaunches() {
@@ -26,8 +29,15 @@ function saveRecentLaunch(appId) {
     localStorage.setItem(RECENT_LAUNCHES_KEY, JSON.stringify(current.slice(0, MAX_RECENT_LAUNCHES)));
 }
 
+function resetLauncherSelection() {
+    launcherState.selectedIndex = 0;
+    launcherState.keyboardMode = false;
+}
+
 function closeLauncherView() {
     document.querySelector('.app-launcher-view')?.classList.add('hidden');
+    resetLauncherSelection();
+    updateLauncherSelection();
 }
 
 function openAppFromLauncher(appId) {
@@ -39,21 +49,68 @@ function openAppFromLauncher(appId) {
     closeLauncherView();
 }
 
-// Launcher utilities: update contents, context menu, and click handling
-function createLauncherContextMenu() {
-    if (document.getElementById('launcher-context-menu')) return;
-    const menu = document.createElement('div');
-    menu.id = 'launcher-context-menu';
-    menu.classList.add('hidden');
-    document.body.appendChild(menu);
+function getCurrentSortMode() {
+    const sort = document.getElementById('launcher-sort');
+    return sort?.value || localStorage.getItem(LAUNCHER_SORT_KEY) || 'recent';
+}
 
-    // Close on click outside
+function getSortedAppEntries() {
+    const entries = Array.from(window.WebDesk.windowManager.appConfigs.entries());
+    const sortMode = getCurrentSortMode();
+
+    if (sortMode === 'alpha') {
+        return entries.sort(([, a], [, b]) => a.title.localeCompare(b.title));
+    }
+
+    const recent = getRecentLaunches();
+    return entries.sort(([idA, configA], [idB, configB]) => {
+        const recentA = recent.indexOf(idA);
+        const recentB = recent.indexOf(idB);
+
+        if (recentA !== -1 || recentB !== -1) {
+            if (recentA === -1) return 1;
+            if (recentB === -1) return -1;
+            return recentA - recentB;
+        }
+
+        return configA.title.localeCompare(configB.title);
+    });
+}
+
+function createContextMenu(menuId) {
+    let menu = document.getElementById(menuId);
+    if (!menu) {
+        menu = document.createElement('div');
+        menu.id = menuId;
+        menu.classList.add('hidden');
+        document.body.appendChild(menu);
+    }
+    return menu;
+}
+
+function hideContextMenus() {
+    document.getElementById('launcher-context-menu')?.classList.add('hidden');
+    document.getElementById('desktop-context-menu')?.classList.add('hidden');
+}
+
+function showMenu(menu, x, y) {
+    menu.classList.remove('hidden');
+    const rect = menu.getBoundingClientRect();
+    const left = Math.min(x, window.innerWidth - rect.width - 10);
+    const top = Math.min(y, window.innerHeight - rect.height - 10);
+    menu.style.left = `${Math.max(10, left)}px`;
+    menu.style.top = `${Math.max(10, top)}px`;
+}
+
+function createLauncherContextMenu() {
+    const menu = createContextMenu('launcher-context-menu');
+
     document.addEventListener('click', (e) => {
         if (!menu.contains(e.target)) menu.classList.add('hidden');
     });
 }
 
-function showLauncherContextMenu(x, y, appId) {
+function showAppContextMenu(x, y, appId) {
     const menu = document.getElementById('launcher-context-menu');
     if (!menu) return;
 
@@ -77,13 +134,14 @@ function showLauncherContextMenu(x, y, appId) {
             const tb = document.querySelector(`.shelf-item[data-app-id="${appId}"]`);
             if (tb) window.WebDesk.windowManager.setTaskbarIcon(tb, config);
             updateLauncherIcons();
+            filterLauncherApps(document.querySelector('.launcher-search input')?.value || '');
         }
         menu.classList.add('hidden');
     });
 
     const pinBtn = document.createElement('button');
     pinBtn.className = 'launcher-context-action';
-    pinBtn.textContent = (config.pinned ? 'Unpin from shelf' : 'Pin to shelf');
+    pinBtn.textContent = config.pinned ? 'Unpin from shelf' : 'Pin to shelf';
     pinBtn.addEventListener('click', () => {
         config.pinned = !config.pinned;
         if (window.WebDesk?.appManager?.apps.has(appId)) {
@@ -94,13 +152,7 @@ function showLauncherContextMenu(x, y, appId) {
 
         const existing = document.querySelector(`.shelf-item[data-app-id="${appId}"]`);
         if (config.pinned && !existing) {
-            const taskbarIcon = document.createElement('div');
-            taskbarIcon.className = 'shelf-item';
-            taskbarIcon.dataset.appId = appId;
-            taskbarIcon.title = config.title;
-            window.WebDesk.windowManager.setTaskbarIcon(taskbarIcon, config);
-            taskbarIcon.addEventListener('click', () => window.WebDesk.windowManager.createWindow(appId, config));
-            document.querySelector('.shelf-items-left').appendChild(taskbarIcon);
+            window.WebDesk.windowManager.addTaskbarIcon(appId, config);
             if (!window.WebDesk.windowManager.pinnedApps.includes(appId)) {
                 window.WebDesk.windowManager.pinnedApps.push(appId);
             }
@@ -111,48 +163,77 @@ function showLauncherContextMenu(x, y, appId) {
         }
 
         updateLauncherIcons();
+        filterLauncherApps(document.querySelector('.launcher-search input')?.value || '');
         menu.classList.add('hidden');
     });
 
-    menu.appendChild(renameBtn);
-    menu.appendChild(pinBtn);
-
-    let left = x;
-    let top = y;
-    menu.classList.remove('hidden');
-    const rect = menu.getBoundingClientRect();
-    if (left + rect.width > window.innerWidth) left = window.innerWidth - rect.width - 10;
-    if (top + rect.height > window.innerHeight) top = window.innerHeight - rect.height - 10;
-    menu.style.left = `${left}px`;
-    menu.style.top = `${top}px`;
+    menu.append(renameBtn, pinBtn);
+    showMenu(menu, x, y);
 }
 
-function getSortedAppEntries() {
-    const entries = Array.from(window.WebDesk.windowManager.appConfigs.entries());
-    const recent = getRecentLaunches();
+function createDesktopContextMenu() {
+    const menu = createContextMenu('desktop-context-menu');
+    menu.innerHTML = `
+        <button class="launcher-context-action" data-action="open-settings">Open settings</button>
+        <button class="launcher-context-action" data-action="open-wallpapers">Wallpaper settings</button>
+        <button class="launcher-context-action" data-action="close-all">Close all windows</button>
+    `;
 
-    return entries.sort(([idA, configA], [idB, configB]) => {
-        const recentA = recent.indexOf(idA);
-        const recentB = recent.indexOf(idB);
+    menu.addEventListener('click', (event) => {
+        const action = event.target.dataset.action;
+        if (!action) return;
 
-        if (recentA !== -1 || recentB !== -1) {
-            if (recentA === -1) return 1;
-            if (recentB === -1) return -1;
-            return recentA - recentB;
+        if (action === 'open-settings' || action === 'open-wallpapers') {
+            const config = window.WebDesk.windowManager.appConfigs.get('themes');
+            if (config) window.WebDesk.windowManager.createWindow('themes', config);
+            if (action === 'open-wallpapers') {
+                setTimeout(() => {
+                    const frame = document.querySelector('.app-window[data-app-id="themes"] iframe');
+                    frame?.contentWindow?.postMessage({ type: 'settingsTab', tab: 'wallpaper' }, '*');
+                }, 250);
+            }
         }
 
-        return configA.title.localeCompare(configB.title);
+        if (action === 'close-all') {
+            Array.from(window.WebDesk.windowManager.openWindows.keys()).forEach((id) => {
+                window.WebDesk.windowManager.closeWindow(id);
+            });
+        }
+
+        menu.classList.add('hidden');
+    });
+
+    document.addEventListener('contextmenu', (event) => {
+        const onDesktop = event.target.closest('.os-desktop') &&
+            !event.target.closest('.app-window') &&
+            !event.target.closest('.shelf');
+
+        if (!onDesktop) return;
+        event.preventDefault();
+        hideContextMenus();
+        showMenu(menu, event.pageX, event.pageY);
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!menu.contains(e.target)) menu.classList.add('hidden');
     });
 }
 
-function updateLauncherSelection(launcherGrid) {
-    const cards = launcherGrid.querySelectorAll('.launcher-app:not(.hidden)');
+function updateLauncherSelection() {
+    const launcherGrid = document.querySelector('.launcher-grid');
+    if (!launcherGrid) return;
+
+    const cards = Array.from(launcherGrid.querySelectorAll('.launcher-app:not(.hidden)'));
     cards.forEach((card, index) => {
-        card.classList.toggle('active', index === launcherState.selectedIndex);
+        const isActive = launcherState.keyboardMode && index === launcherState.selectedIndex;
+        card.classList.toggle('active', isActive);
     });
 }
 
-function filterLauncherApps(query, launcherGrid) {
+function filterLauncherApps(query = '') {
+    const launcherGrid = document.querySelector('.launcher-grid');
+    if (!launcherGrid) return;
+
     const normalized = query.trim().toLowerCase();
     const apps = Array.from(launcherGrid.querySelectorAll('.launcher-app'));
 
@@ -165,12 +246,17 @@ function filterLauncherApps(query, launcherGrid) {
     });
 
     launcherState.filteredAppIds = visible.map(app => app.dataset.app);
+    launcherState.columns = Math.max(1, Math.floor(launcherGrid.clientWidth / 95));
     launcherState.selectedIndex = Math.min(launcherState.selectedIndex, Math.max(visible.length - 1, 0));
 
     const emptyState = document.getElementById('launcher-empty-state');
-    if (emptyState) emptyState.classList.toggle('hidden', visible.length > 0);
+    if (emptyState) {
+        const showEmpty = normalized.length > 0 && visible.length === 0;
+        emptyState.classList.toggle('hidden', !showEmpty);
+    }
 
-    updateLauncherSelection(launcherGrid);
+    if (!launcherState.keyboardMode) launcherState.selectedIndex = 0;
+    updateLauncherSelection();
 }
 
 function updateLauncherIcons() {
@@ -185,7 +271,6 @@ function updateLauncherIcons() {
         appDiv.dataset.app = id;
         appDiv.dataset.title = (config.title || '').toLowerCase();
         appDiv.dataset.url = (config.url || '').toLowerCase();
-        appDiv.tabIndex = 0;
 
         const iconDiv = document.createElement('div');
         iconDiv.className = 'launcher-app-icon';
@@ -209,12 +294,11 @@ function updateLauncherIcons() {
         nameSpan.className = 'launcher-app-name';
         nameSpan.textContent = config.title;
 
-        appDiv.appendChild(iconDiv);
-        appDiv.appendChild(nameSpan);
+        appDiv.append(iconDiv, nameSpan);
 
         appDiv.addEventListener('contextmenu', (ev) => {
             ev.preventDefault();
-            showLauncherContextMenu(ev.pageX, ev.pageY, id);
+            showAppContextMenu(ev.pageX, ev.pageY, id);
         });
 
         launcherGrid.appendChild(appDiv);
@@ -227,28 +311,30 @@ function updateLauncherIcons() {
     launcherGrid.appendChild(emptyState);
 
     launcherState.filteredAppIds = appEntries.map(([id]) => id);
-    launcherState.selectedIndex = 0;
-    updateLauncherSelection(launcherGrid);
-
+    resetLauncherSelection();
     window.updateLauncherIcons = updateLauncherIcons;
 }
 
-function setupLauncherClicks() {
+function setupLauncherInteractions() {
     const launcherGrid = document.querySelector('.launcher-grid');
     const launcherInput = document.querySelector('.launcher-search input');
+    const launcherSort = document.getElementById('launcher-sort');
     if (!launcherGrid) return;
 
-    updateLauncherIcons();
     createLauncherContextMenu();
+    createDesktopContextMenu();
 
-    window.addEventListener('message', (event) => {
-        if (event.data.type === 'registerApp' || event.data.type === 'unregisterApp') {
-            setTimeout(() => {
-                updateLauncherIcons();
-                filterLauncherApps(launcherInput?.value || '', launcherGrid);
-            }, 100);
-        }
-    });
+    if (launcherSort) {
+        launcherSort.value = localStorage.getItem(LAUNCHER_SORT_KEY) || 'recent';
+        launcherSort.addEventListener('change', () => {
+            localStorage.setItem(LAUNCHER_SORT_KEY, launcherSort.value);
+            updateLauncherIcons();
+            filterLauncherApps(launcherInput?.value || '');
+        });
+    }
+
+    updateLauncherIcons();
+    filterLauncherApps('');
 
     launcherGrid.addEventListener('click', (e) => {
         const appItem = e.target.closest('.launcher-app');
@@ -258,8 +344,8 @@ function setupLauncherClicks() {
     });
 
     launcherInput?.addEventListener('input', (e) => {
-        launcherState.selectedIndex = 0;
-        filterLauncherApps(e.target.value, launcherGrid);
+        launcherState.keyboardMode = false;
+        filterLauncherApps(e.target.value);
     });
 
     launcherInput?.addEventListener('keydown', (event) => {
@@ -268,28 +354,45 @@ function setupLauncherClicks() {
             return;
         }
 
-        if (!['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) return;
-        const total = launcherState.filteredAppIds.length;
-        if (!total) return;
-
-        if (event.key === 'ArrowDown') {
-            launcherState.selectedIndex = (launcherState.selectedIndex + 1) % total;
-        }
-
-        if (event.key === 'ArrowUp') {
-            launcherState.selectedIndex = (launcherState.selectedIndex - 1 + total) % total;
-        }
-
         if (event.key === 'Enter') {
-            const selectedAppId = launcherState.filteredAppIds[launcherState.selectedIndex];
-            openAppFromLauncher(selectedAppId);
+            if (!launcherState.filteredAppIds.length) return;
+            const index = launcherState.keyboardMode ? launcherState.selectedIndex : 0;
+            openAppFromLauncher(launcherState.filteredAppIds[index]);
+            event.preventDefault();
+            return;
         }
 
-        updateLauncherSelection(launcherGrid);
+        if (!['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+        if (!launcherState.filteredAppIds.length) return;
+
+        launcherState.keyboardMode = true;
+        const total = launcherState.filteredAppIds.length;
+        const cols = launcherState.columns;
+
+        if (event.key === 'ArrowRight') launcherState.selectedIndex = Math.min(total - 1, launcherState.selectedIndex + 1);
+        if (event.key === 'ArrowLeft') launcherState.selectedIndex = Math.max(0, launcherState.selectedIndex - 1);
+        if (event.key === 'ArrowDown') launcherState.selectedIndex = Math.min(total - 1, launcherState.selectedIndex + cols);
+        if (event.key === 'ArrowUp') launcherState.selectedIndex = Math.max(0, launcherState.selectedIndex - cols);
+
+        updateLauncherSelection();
         event.preventDefault();
     });
 
-    filterLauncherApps('', launcherGrid);
+    document.addEventListener('launcherclosed', () => {
+        resetLauncherSelection();
+        updateLauncherSelection();
+    });
+
+    window.addEventListener('message', (event) => {
+        if (event.data?.type === 'registerApp' || event.data?.type === 'unregisterApp') {
+            setTimeout(() => {
+                updateLauncherIcons();
+                filterLauncherApps(launcherInput?.value || '');
+            }, 100);
+        }
+    });
+
+    window.showAppContextMenu = showAppContextMenu;
 }
 
 class WebDesk {
@@ -333,17 +436,15 @@ class WebDesk {
         const stored = localStorage.getItem('WebDesk_custom_apps');
         if (stored) {
             const apps = JSON.parse(stored);
-            apps.forEach(app => {
-                this.appManager.registerApp(app.id, app.config);
-            });
+            apps.forEach(app => this.appManager.registerApp(app.id, app.config));
         }
     }
 
     handleMessage(event) {
-        if (event.data.type === 'registerApp') {
+        if (event.data?.type === 'registerApp') {
             const { app } = event.data;
             this.appManager.registerApp(app.id, app.config);
-        } else if (event.data.type === 'unregisterApp') {
+        } else if (event.data?.type === 'unregisterApp') {
             const { appId } = event.data;
             this.appManager.unregisterApp(appId);
         }
@@ -351,15 +452,12 @@ class WebDesk {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Initializing WebDesk...');
     window.WebDesk = new WebDesk();
-    setupLauncherClicks();
-    console.log('Apps registered:', Array.from(window.WebDesk.windowManager.appConfigs.keys()));
+    setupLauncherInteractions();
 
     if (!localStorage.getItem('wallpaper')) {
-        window.postMessage({
-            type: 'setWallpaper',
-            url: 'https://76836.github.io/webdesk/images/wallpapers/water.png'
-        }, '*');
+        window.postMessage({ type: 'setWallpaper', url: 'https://76836.github.io/webdesk/images/wallpapers/water.png' }, '*');
     }
+
+    document.addEventListener('click', hideContextMenus);
 });
