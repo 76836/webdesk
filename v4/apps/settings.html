@@ -50,7 +50,7 @@
 
             <section class="tab-content" data-tab="apps">
                 <h2>Apps</h2>
-                <iframe class="apps-frame" src="./appmaker.html"></iframe>
+                <iframe class="apps-frame" src="./appmaker"></iframe>
             </section>
 
             <section class="tab-content" data-tab="debug">
@@ -194,8 +194,8 @@
             });
 
             document.getElementById('open-appcenter').addEventListener('click', () => {
-                window.parent.postMessage({ type: 'registerApp', app: { id: 'appmaker', config: { title: 'AppCenter', url: './apps/appmaker.html', pinned: true } } }, '*');
-                window.location.href = './appmaker.html';
+                window.parent.postMessage({ type: 'registerApp', app: { id: 'appmaker', config: { title: 'AppCenter', url: './apps/appmaker', pinned: true } } }, '*');
+                window.location.href = './appmaker';
             });
 
             document.getElementById('clear-recents').addEventListener('click', () => {

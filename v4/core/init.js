@@ -6,8 +6,8 @@ const RECENT_LAUNCHES_KEY = 'WebDesk_recent_launches';
 const MAX_RECENT_LAUNCHES = 5;
 const LAUNCHER_SORT_KEY = 'WebDesk_launcher_sort';
 
-const SETTINGS_APP_URL = new URL('../apps/settings.html', import.meta.url).href;
-const APPMAKER_APP_URL = new URL('../apps/appmaker.html', import.meta.url).href;
+const SETTINGS_APP_URL = new URL('../apps/settings', import.meta.url).href;
+const APPMAKER_APP_URL = new URL('../apps/appmaker', import.meta.url).href;
 
 let launcherState = {
     filteredAppIds: [],
