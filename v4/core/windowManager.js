@@ -111,9 +111,12 @@ class WindowManager {
 
         const content = windowEl.querySelector('.app-content');
         const iframe = document.createElement('iframe');
-        iframe.src = config.url.startsWith('http') ? config.url : new URL(config.url, window.location.origin).href;
+        iframe.src = config.url;
         iframe.frameBorder = '0';
         iframe.width = '100%';
+        iframe.height = '100%';
+        iframe.style.flex = '1';
+        iframe.style.display = 'block';
         content.appendChild(iframe);
 
         document.querySelector('.os-desktop').appendChild(windowEl);
@@ -138,7 +141,15 @@ class WindowManager {
         el.querySelector('.minimize').onclick = (e) => { e.stopPropagation(); this.minimizeWindow(id); };
         el.querySelector('.maximize').onclick = (e) => { e.stopPropagation(); this.toggleMaximize(id); };
         el.querySelector('.close').onclick = (e) => { e.stopPropagation(); this.closeWindow(id); };
-        win.taskbarIcon.onclick = () => this.toggleWindow(id);
+        win.taskbarIcon.onclick = () => {
+            const appConfig = this.appConfigs.get(id);
+            if (!appConfig) return;
+            if (this.openWindows.has(id)) {
+                this.toggleWindow(id);
+            } else {
+                this.createWindow(id, appConfig);
+            }
+        };
         win.taskbarIcon.oncontextmenu = (event) => {
             event.preventDefault();
             if (window.showAppContextMenu) {

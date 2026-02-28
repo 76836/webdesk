@@ -418,13 +418,13 @@ class WebDesk {
 
         this.appManager.registerApp('themes', {
             title: '⚙️ Settings',
-            url: './webdesk/v4/apps/settings',
+            url: './apps/settings.html',
             pinned: true
         });
 
         this.appManager.registerApp('appmaker', {
             title: 'AppCenter',
-            url: './webdesk/v4/apps/appmaker',
+            url: './apps/appmaker.html',
             pinned: true,
             iconUrl: 'https://76836.github.io/AppCenter/apple-touch-icon.png'
         });

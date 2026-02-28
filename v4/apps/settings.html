@@ -10,9 +10,10 @@
         .sidebar { width: 220px; padding: 16px 0; display: flex; flex-direction: column; gap: 6px; }
         .sidebar-item { padding: 12px 20px; cursor: pointer; color: var(--wd-text-muted); border-left: 2px solid transparent; transition: 0.2s ease; }
         .sidebar-item:hover, .sidebar-item.active { color: var(--wd-text-main); border-left-color: var(--wd-accent); background: rgba(255,255,255,0.12); }
-        .main-content { flex-grow: 1; padding: 20px; overflow: auto; }
+        .main-content { flex-grow: 1; padding: 20px; overflow: auto; display: flex; flex-direction: column; min-height: 0; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        .tab-content[data-tab="apps"].active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
         h2 { margin: 0 0 14px; }
         .wallpaper-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
         .wallpaper-item-wrap { position: relative; }
@@ -25,7 +26,7 @@
         .btn-danger { background: rgba(190, 50, 50, 0.8); }
         .upload-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
         .muted { color: var(--wd-text-muted); font-size: 13px; }
-        .apps-frame { width: 100%; height: 65vh; border: 0; border-radius: 12px; background: transparent; }
+        .apps-frame { width: 100%; flex: 1; min-height: 420px; border: 0; border-radius: 12px; background: transparent; overflow: auto; }
     </style>
 </head>
 <body>
@@ -193,7 +194,7 @@
             });
 
             document.getElementById('open-appcenter').addEventListener('click', () => {
-                window.parent.postMessage({ type: 'registerApp', app: { id: 'appmaker', config: { title: 'AppCenter', url: './webdesk/v4/apps/appmaker', pinned: true } } }, '*');
+                window.parent.postMessage({ type: 'registerApp', app: { id: 'appmaker', config: { title: 'AppCenter', url: './apps/appmaker.html', pinned: true } } }, '*');
                 window.location.href = './appmaker.html';
             });
 

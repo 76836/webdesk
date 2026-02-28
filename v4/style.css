@@ -331,10 +331,11 @@ body {
 
 .app-content {
     flex-grow: 1;
+    min-height: 0;
     border: none;
     background-color: transparent;
     display: flex;
-    overflow: auto;
+    overflow: hidden;
 }
 
 .app-content iframe {
@@ -704,6 +705,10 @@ body {
     color: var(--wd-text-muted);
     padding: 22px 0;
     font-size: 13px;
+}
+
+.launcher-empty-state.hidden {
+    display: none;
 }
 
 
