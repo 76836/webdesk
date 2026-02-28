@@ -60,10 +60,15 @@ class WindowManager {
         taskbarIcon.title = config.title;
         this.setTaskbarIcon(taskbarIcon, config);
 
-        taskbarIcon.addEventListener('click', () => {
+        taskbarIcon.onclick = () => {
             const appConfig = this.appConfigs.get(id) || config;
-            this.createWindow(id, appConfig);
-        });
+            if (!appConfig) return;
+            if (this.openWindows.has(id)) {
+                this.toggleWindow(id);
+            } else {
+                this.createWindow(id, appConfig);
+            }
+        };
 
         taskbarIcon.addEventListener('contextmenu', (event) => {
             event.preventDefault();
@@ -141,15 +146,6 @@ class WindowManager {
         el.querySelector('.minimize').onclick = (e) => { e.stopPropagation(); this.minimizeWindow(id); };
         el.querySelector('.maximize').onclick = (e) => { e.stopPropagation(); this.toggleMaximize(id); };
         el.querySelector('.close').onclick = (e) => { e.stopPropagation(); this.closeWindow(id); };
-        win.taskbarIcon.onclick = () => {
-            const appConfig = this.appConfigs.get(id);
-            if (!appConfig) return;
-            if (this.openWindows.has(id)) {
-                this.toggleWindow(id);
-            } else {
-                this.createWindow(id, appConfig);
-            }
-        };
         win.taskbarIcon.oncontextmenu = (event) => {
             event.preventDefault();
             if (window.showAppContextMenu) {
