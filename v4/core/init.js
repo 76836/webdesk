@@ -6,6 +6,9 @@ const RECENT_LAUNCHES_KEY = 'WebDesk_recent_launches';
 const MAX_RECENT_LAUNCHES = 5;
 const LAUNCHER_SORT_KEY = 'WebDesk_launcher_sort';
 
+const SETTINGS_APP_URL = new URL('../apps/settings.html', import.meta.url).href;
+const APPMAKER_APP_URL = new URL('../apps/appmaker.html', import.meta.url).href;
+
 let launcherState = {
     filteredAppIds: [],
     selectedIndex: 0,
@@ -418,13 +421,13 @@ class WebDesk {
 
         this.appManager.registerApp('themes', {
             title: '⚙️ Settings',
-            url: './apps/settings.html',
+            url: SETTINGS_APP_URL,
             pinned: true
         });
 
         this.appManager.registerApp('appmaker', {
             title: 'AppCenter',
-            url: './apps/appmaker.html',
+            url: APPMAKER_APP_URL,
             pinned: true,
             iconUrl: 'https://76836.github.io/AppCenter/apple-touch-icon.png'
         });
