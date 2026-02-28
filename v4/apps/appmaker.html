@@ -4,18 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AppCenter</title>
+    <link rel="stylesheet" href="../style.css">
 <style>
     :root {
-        --primary: #d3e3fd;
-        --on-primary: #041e49;
-        --surface: #f7f9fc;
-        --secondary-container: #e8def8;
-        --on-secondary-container: #1d192b;
-        --error: #f9dedc;
-        --on-error: #410e0b;
-        --outline: #747775;
-        --text: #1f1f1f;
-        --card: #ffffff;
+        --primary: #25ffff;
+        --on-primary: #021b25;
+        --surface: #0b1117;
+        --secondary-container: rgba(55, 55, 55, 0.5);
+        --on-secondary-container: #e4f3ff;
+        --error: #8c1d18;
+        --on-error: #f9dedc;
+        --outline: rgba(200, 200, 255, 0.25);
+        --text: #e4f3ff;
+        --card: rgba(55, 55, 55, 0.5);
     }
 
     @media (prefers-color-scheme: dark) {
@@ -36,7 +37,7 @@
     body {
         margin: 0;
         font-family: 'Segoe UI', Roboto, sans-serif;
-        background: var(--surface);
+        background: radial-gradient(circle at top left, rgba(45, 60, 80, 0.22), rgba(10, 10, 10, 0.94));
         color: var(--text);
         padding: 16px;
         display: grid;
@@ -48,6 +49,8 @@
 
     section {
         background: var(--card);
+        border: var(--wd-glass-border);
+        backdrop-filter: blur(8px);
         padding: 24px;
         border-radius: 28px;
         box-shadow: 0 1px 2px rgba(0,0,0,0.05);

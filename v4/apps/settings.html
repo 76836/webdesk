@@ -2,69 +2,89 @@
 <html>
 <head>
     <title>Settings</title>
+    <link rel="stylesheet" href="../style.css">
     <style>
         body {
             margin: 0;
             font-family: Roboto, sans-serif;
-            background: #f8f9fa;
-            color: #3c4043;
+            background: radial-gradient(circle at top left, rgba(45, 60, 80, 0.22), rgba(10, 10, 10, 0.94));
+            color: var(--wd-text-main);
         }
 
         .settings-app {
             display: flex;
             height: 100vh;
+            gap: 12px;
+            padding: 12px;
+            box-sizing: border-box;
+        }
+
+        .sidebar,
+        .main-content {
+            background: var(--wd-glass-bg);
+            border: var(--wd-glass-border);
+            backdrop-filter: blur(8px);
+            border-radius: var(--wd-radius-lg);
         }
 
         .sidebar {
-            width: 200px;
-            background: #fff;
-            border-right: 1px solid #dadce0;
-            padding: 20px 0;
+            width: 220px;
+            padding: 16px 0;
         }
 
         .sidebar-item {
-            padding: 12px 24px;
+            padding: 12px 20px;
             cursor: pointer;
-            color: #5f6368;
+            color: var(--wd-text-muted);
+            border-left: 2px solid transparent;
+            transition: 0.2s ease;
         }
 
         .sidebar-item:hover {
-            background: rgba(0,0,0,0.08);
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--wd-text-main);
         }
 
         .sidebar-item.active {
-            color: #8ab4f8;
-            background: rgba(0,0,0,0.12);
+            color: var(--wd-text-main);
+            border-left-color: var(--wd-accent);
+            background: rgba(255, 255, 255, 0.12);
         }
 
         .main-content {
             flex-grow: 1;
-            padding: 24px;
+            padding: 20px;
             overflow: auto;
+        }
+
+        .main-content h2 {
+            margin-top: 0;
+            margin-bottom: 14px;
         }
 
         .wallpaper-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+            gap: 14px;
         }
 
         .wallpaper-item {
             aspect-ratio: 16/9;
             background-size: cover;
             background-position: center;
-            border-radius: 8px;
+            border-radius: var(--wd-radius-md);
             cursor: pointer;
-            transition: transform 0.2s;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
             border: 2px solid transparent;
         }
 
         .wallpaper-item:hover {
-            transform: scale(1.02);
+            transform: translateY(-2px);
         }
 
         .wallpaper-item.active {
-            border-color: #8ab4f8;
+            border-color: var(--wd-accent);
+            box-shadow: var(--wd-focus-ring);
         }
     </style>
 </head>
@@ -87,11 +107,8 @@
     </div>
     <script>
         function setWallpaper(url) {
-            // Remove url() wrapper
-            url = url.slice(4, -1).replace(/['"]/g, '');
-            // Send message to parent window
+            url = url.slice(4, -1).replace(/["']/g, '');
             window.parent.postMessage({ type: 'setWallpaper', url }, '*');
-            // Update active state
             document.querySelectorAll('.wallpaper-item').forEach(item => {
                 item.classList.toggle('active', item.style.backgroundImage.includes(url));
             });

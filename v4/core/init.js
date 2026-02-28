@@ -2,20 +2,48 @@ import WindowManager from './windowManager.js';
 import AppManager from './appManager.js';
 import { UIManager, QuickSettings } from './uiManager.js';
 
+const RECENT_LAUNCHES_KEY = 'WebDesk_recent_launches';
+const MAX_RECENT_LAUNCHES = 5;
+
+let launcherState = {
+    filteredAppIds: [],
+    selectedIndex: 0
+};
+
+function getRecentLaunches() {
+    try {
+        const raw = localStorage.getItem(RECENT_LAUNCHES_KEY);
+        const recent = raw ? JSON.parse(raw) : [];
+        return Array.isArray(recent) ? recent : [];
+    } catch {
+        return [];
+    }
+}
+
+function saveRecentLaunch(appId) {
+    const current = getRecentLaunches().filter(id => id !== appId);
+    current.unshift(appId);
+    localStorage.setItem(RECENT_LAUNCHES_KEY, JSON.stringify(current.slice(0, MAX_RECENT_LAUNCHES)));
+}
+
+function closeLauncherView() {
+    document.querySelector('.app-launcher-view')?.classList.add('hidden');
+}
+
+function openAppFromLauncher(appId) {
+    if (!appId) return;
+    const config = window.WebDesk?.windowManager?.appConfigs.get(appId);
+    if (!config) return;
+    window.WebDesk.windowManager.createWindow(appId, config);
+    saveRecentLaunch(appId);
+    closeLauncherView();
+}
 
 // Launcher utilities: update contents, context menu, and click handling
 function createLauncherContextMenu() {
     if (document.getElementById('launcher-context-menu')) return;
     const menu = document.createElement('div');
     menu.id = 'launcher-context-menu';
-    menu.style.position = 'fixed';
-    menu.style.background = '#ffffff';
-    menu.style.border = '1px solid rgba(0,0,0,0.12)';
-    menu.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)';
-    menu.style.padding = '6px 0';
-    menu.style.borderRadius = '6px';
-    menu.style.zIndex = '10000';
-    menu.style.minWidth = '160px';
     menu.classList.add('hidden');
     document.body.appendChild(menu);
 
@@ -29,62 +57,41 @@ function showLauncherContextMenu(x, y, appId) {
     const menu = document.getElementById('launcher-context-menu');
     if (!menu) return;
 
-    // Clear previous items
     menu.innerHTML = '';
 
     const config = window.WebDesk.windowManager.appConfigs.get(appId);
     if (!config) return;
 
-    // Rename action
     const renameBtn = document.createElement('button');
+    renameBtn.className = 'launcher-context-action';
     renameBtn.textContent = 'Rename';
-    renameBtn.style.display = 'block';
-    renameBtn.style.width = '100%';
-    renameBtn.style.padding = '8px 12px';
-    renameBtn.style.border = 'none';
-    renameBtn.style.background = 'transparent';
-    renameBtn.style.textAlign = 'left';
-    renameBtn.style.cursor = 'pointer';
     renameBtn.addEventListener('click', () => {
         const newName = prompt('Enter new name for the app', config.title);
         if (newName && newName.trim()) {
             config.title = newName.trim();
-            // Update app manager (persistence)
-            if (window.WebDesk && window.WebDesk.appManager && window.WebDesk.appManager.apps.has(appId)) {
+            if (window.WebDesk?.appManager?.apps.has(appId)) {
                 const appConfig = window.WebDesk.appManager.apps.get(appId);
                 appConfig.title = config.title;
                 window.WebDesk.appManager.saveApps();
             }
-            // Update taskbar icon if present
             const tb = document.querySelector(`.shelf-item[data-app-id="${appId}"]`);
             if (tb) window.WebDesk.windowManager.setTaskbarIcon(tb, config);
-
-            // Refresh launcher
             updateLauncherIcons();
         }
         menu.classList.add('hidden');
     });
 
-    // Pin/unpin action
     const pinBtn = document.createElement('button');
+    pinBtn.className = 'launcher-context-action';
     pinBtn.textContent = (config.pinned ? 'Unpin from shelf' : 'Pin to shelf');
-    pinBtn.style.display = 'block';
-    pinBtn.style.width = '100%';
-    pinBtn.style.padding = '8px 12px';
-    pinBtn.style.border = 'none';
-    pinBtn.style.background = 'transparent';
-    pinBtn.style.textAlign = 'left';
-    pinBtn.style.cursor = 'pointer';
     pinBtn.addEventListener('click', () => {
         config.pinned = !config.pinned;
-        // Update persistence
-        if (window.WebDesk && window.WebDesk.appManager && window.WebDesk.appManager.apps.has(appId)) {
+        if (window.WebDesk?.appManager?.apps.has(appId)) {
             const appConfig = window.WebDesk.appManager.apps.get(appId);
             appConfig.pinned = config.pinned;
             window.WebDesk.appManager.saveApps();
         }
 
-        // Add or remove shelf item
         const existing = document.querySelector(`.shelf-item[data-app-id="${appId}"]`);
         if (config.pinned && !existing) {
             const taskbarIcon = document.createElement('div');
@@ -94,7 +101,6 @@ function showLauncherContextMenu(x, y, appId) {
             window.WebDesk.windowManager.setTaskbarIcon(taskbarIcon, config);
             taskbarIcon.addEventListener('click', () => window.WebDesk.windowManager.createWindow(appId, config));
             document.querySelector('.shelf-items-left').appendChild(taskbarIcon);
-            // Track pinned apps in window manager state
             if (!window.WebDesk.windowManager.pinnedApps.includes(appId)) {
                 window.WebDesk.windowManager.pinnedApps.push(appId);
             }
@@ -111,15 +117,60 @@ function showLauncherContextMenu(x, y, appId) {
     menu.appendChild(renameBtn);
     menu.appendChild(pinBtn);
 
-    // Position menu (clamp to viewport)
-    const rect = menu.getBoundingClientRect();
     let left = x;
     let top = y;
-    if (left + 160 > window.innerWidth) left = window.innerWidth - 170;
-    if (top + rect.height > window.innerHeight) top = window.innerHeight - rect.height - 10;
-    menu.style.left = left + 'px';
-    menu.style.top = top + 'px';
     menu.classList.remove('hidden');
+    const rect = menu.getBoundingClientRect();
+    if (left + rect.width > window.innerWidth) left = window.innerWidth - rect.width - 10;
+    if (top + rect.height > window.innerHeight) top = window.innerHeight - rect.height - 10;
+    menu.style.left = `${left}px`;
+    menu.style.top = `${top}px`;
+}
+
+function getSortedAppEntries() {
+    const entries = Array.from(window.WebDesk.windowManager.appConfigs.entries());
+    const recent = getRecentLaunches();
+
+    return entries.sort(([idA, configA], [idB, configB]) => {
+        const recentA = recent.indexOf(idA);
+        const recentB = recent.indexOf(idB);
+
+        if (recentA !== -1 || recentB !== -1) {
+            if (recentA === -1) return 1;
+            if (recentB === -1) return -1;
+            return recentA - recentB;
+        }
+
+        return configA.title.localeCompare(configB.title);
+    });
+}
+
+function updateLauncherSelection(launcherGrid) {
+    const cards = launcherGrid.querySelectorAll('.launcher-app:not(.hidden)');
+    cards.forEach((card, index) => {
+        card.classList.toggle('active', index === launcherState.selectedIndex);
+    });
+}
+
+function filterLauncherApps(query, launcherGrid) {
+    const normalized = query.trim().toLowerCase();
+    const apps = Array.from(launcherGrid.querySelectorAll('.launcher-app'));
+
+    const visible = apps.filter((app) => {
+        const title = app.dataset.title || '';
+        const url = app.dataset.url || '';
+        const isMatch = !normalized || title.includes(normalized) || url.includes(normalized);
+        app.classList.toggle('hidden', !isMatch);
+        return isMatch;
+    });
+
+    launcherState.filteredAppIds = visible.map(app => app.dataset.app);
+    launcherState.selectedIndex = Math.min(launcherState.selectedIndex, Math.max(visible.length - 1, 0));
+
+    const emptyState = document.getElementById('launcher-empty-state');
+    if (emptyState) emptyState.classList.toggle('hidden', visible.length > 0);
+
+    updateLauncherSelection(launcherGrid);
 }
 
 function updateLauncherIcons() {
@@ -127,10 +178,14 @@ function updateLauncherIcons() {
     if (!launcherGrid) return;
     launcherGrid.innerHTML = '';
 
-    window.WebDesk.windowManager.appConfigs.forEach((config, id) => {
+    const appEntries = getSortedAppEntries();
+    appEntries.forEach(([id, config]) => {
         const appDiv = document.createElement('div');
         appDiv.className = 'launcher-app';
         appDiv.dataset.app = id;
+        appDiv.dataset.title = (config.title || '').toLowerCase();
+        appDiv.dataset.url = (config.url || '').toLowerCase();
+        appDiv.tabIndex = 0;
 
         const iconDiv = document.createElement('div');
         iconDiv.className = 'launcher-app-icon';
@@ -157,7 +212,6 @@ function updateLauncherIcons() {
         appDiv.appendChild(iconDiv);
         appDiv.appendChild(nameSpan);
 
-        // Right-click context menu
         appDiv.addEventListener('contextmenu', (ev) => {
             ev.preventDefault();
             showLauncherContextMenu(ev.pageX, ev.pageY, id);
@@ -166,42 +220,76 @@ function updateLauncherIcons() {
         launcherGrid.appendChild(appDiv);
     });
 
-    // store globally so UIManager can call it
+    const emptyState = document.createElement('div');
+    emptyState.id = 'launcher-empty-state';
+    emptyState.className = 'launcher-empty-state hidden';
+    emptyState.textContent = 'No apps found';
+    launcherGrid.appendChild(emptyState);
+
+    launcherState.filteredAppIds = appEntries.map(([id]) => id);
+    launcherState.selectedIndex = 0;
+    updateLauncherSelection(launcherGrid);
+
     window.updateLauncherIcons = updateLauncherIcons;
 }
 
 function setupLauncherClicks() {
     const launcherGrid = document.querySelector('.launcher-grid');
+    const launcherInput = document.querySelector('.launcher-search input');
     if (!launcherGrid) return;
 
-    // Update icons initially
     updateLauncherIcons();
-
-    // Create context menu element
     createLauncherContextMenu();
 
-    // Listen for app changes
     window.addEventListener('message', (event) => {
         if (event.data.type === 'registerApp' || event.data.type === 'unregisterApp') {
-            // Wait a moment for the registration to complete
-            setTimeout(updateLauncherIcons, 100);
+            setTimeout(() => {
+                updateLauncherIcons();
+                filterLauncherApps(launcherInput?.value || '', launcherGrid);
+            }, 100);
         }
     });
 
-    // Set up click handler (open app)
     launcherGrid.addEventListener('click', (e) => {
         const appItem = e.target.closest('.launcher-app');
         if (appItem) {
-            const appId = appItem.dataset.app;
-            if (appId) {
-                const config = window.WebDesk.windowManager.appConfigs.get(appId);
-                if (config) {
-                    window.WebDesk.windowManager.createWindow(appId, config);
-                    document.querySelector('.app-launcher-view').classList.add('hidden');
-                }
-            }
+            openAppFromLauncher(appItem.dataset.app);
         }
     });
+
+    launcherInput?.addEventListener('input', (e) => {
+        launcherState.selectedIndex = 0;
+        filterLauncherApps(e.target.value, launcherGrid);
+    });
+
+    launcherInput?.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeLauncherView();
+            return;
+        }
+
+        if (!['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) return;
+        const total = launcherState.filteredAppIds.length;
+        if (!total) return;
+
+        if (event.key === 'ArrowDown') {
+            launcherState.selectedIndex = (launcherState.selectedIndex + 1) % total;
+        }
+
+        if (event.key === 'ArrowUp') {
+            launcherState.selectedIndex = (launcherState.selectedIndex - 1 + total) % total;
+        }
+
+        if (event.key === 'Enter') {
+            const selectedAppId = launcherState.filteredAppIds[launcherState.selectedIndex];
+            openAppFromLauncher(selectedAppId);
+        }
+
+        updateLauncherSelection(launcherGrid);
+        event.preventDefault();
+    });
+
+    filterLauncherApps('', launcherGrid);
 }
 
 class WebDesk {
@@ -211,23 +299,18 @@ class WebDesk {
         this.uiManager = new UIManager();
         this.quickSettings = new QuickSettings();
 
-        // Initialize app manager with window manager
         this.appManager.initialize(this.windowManager);
-
-        // Register built-in apps
         this.registerBuiltInApps();
-        
-        // Set up message listener for AppCenter
+
         window.addEventListener('message', this.handleMessage.bind(this));
     }
 
     registerBuiltInApps() {
-        // Register app configurations but don't create windows yet
         this.appManager.registerApp('chrome', {
             title: '76836',
             url: 'https://76836.github.io',
             pinned: true,
-            iconUrl: "https://76836.github.io/apple-touch-icon.png"
+            iconUrl: 'https://76836.github.io/apple-touch-icon.png'
         });
 
         this.appManager.registerApp('themes', {
@@ -240,10 +323,9 @@ class WebDesk {
             title: 'AppCenter',
             url: './webdesk/v4/apps/appmaker',
             pinned: true,
-            iconUrl: "https://76836.github.io/AppCenter/apple-touch-icon.png"
+            iconUrl: 'https://76836.github.io/AppCenter/apple-touch-icon.png'
         });
 
-        // Load any custom apps from storage
         this.loadCustomApps();
     }
 
@@ -268,19 +350,16 @@ class WebDesk {
     }
 }
 
-// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Initializing WebDesk...');
     window.WebDesk = new WebDesk();
     setupLauncherClicks();
     console.log('Apps registered:', Array.from(window.WebDesk.windowManager.appConfigs.keys()));
 
-    // wallpaper for first time init
-if (!localStorage.getItem('wallpaper')) {
-  window.postMessage({
-    type: 'setWallpaper',
-    url: "https://76836.github.io/webdesk/images/wallpapers/water.png"
-  }, '*'); 
-}
+    if (!localStorage.getItem('wallpaper')) {
+        window.postMessage({
+            type: 'setWallpaper',
+            url: 'https://76836.github.io/webdesk/images/wallpapers/water.png'
+        }, '*');
+    }
 });
-

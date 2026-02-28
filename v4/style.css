@@ -1,3 +1,15 @@
+
+:root {
+    --wd-glass-bg: rgba(55, 55, 55, 0.5);
+    --wd-glass-border: 2px inset rgba(200, 200, 255, 0.25);
+    --wd-radius-lg: 15px;
+    --wd-radius-md: 10px;
+    --wd-accent: #25ffff;
+    --wd-text-main: #ffffff;
+    --wd-text-muted: #afd3ff;
+    --wd-focus-ring: 0 0 0 2px rgba(37, 255, 255, 0.5);
+}
+
 body {
     margin: 0;
     font-family: Roboto, sans-serif;
@@ -17,10 +29,10 @@ body {
 
 .shelf {
     height: 48px;
-    background-color: rgba(55, 55, 55, 0.5);
-    border: 2px inset rgba(200, 200, 255, 0.25);
+    background-color: var(--wd-glass-bg);
+    border: var(--wd-glass-border);
     backdrop-filter: blur(8px);
-    border-radius: 15px 15px 15px 15px;
+    border-radius: var(--wd-radius-lg);
     display: flex;
     align-items: center;
     padding: 0 3px;
@@ -322,10 +334,10 @@ body {
     left: 5px;
     width: 27vw;
     height: 60vh;
-    background-color: rgba(55, 55, 55, 0.5);
-    border: 2px inset rgba(200, 200, 255, 0.25);
+    background-color: var(--wd-glass-bg);
+    border: var(--wd-glass-border);
     backdrop-filter: blur(8px);
-    border-radius: 15px 15px 15px 15px;
+    border-radius: var(--wd-radius-lg);
     border-radius: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
     z-index: 999;
@@ -346,26 +358,43 @@ body {
 
 #launcher-context-menu {
     display: block;
-    font-family: Roboto, sans-serif;
-    color: #202124;
+    position: fixed;
+    min-width: 168px;
+    background: rgba(8, 10, 14, 0.9);
+    color: var(--wd-text-main);
+    border: var(--wd-glass-border);
+    border-radius: 12px;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    padding: 6px 0;
+    z-index: 10000;
 }
 
 #launcher-context-menu.hidden {
     display: none;
 }
 
-#launcher-context-menu button {
+#launcher-context-menu button,
+.launcher-context-action {
     background: transparent;
+    color: var(--wd-text-main);
     border: none;
     padding: 8px 12px;
     width: 100%;
     text-align: left;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
 }
 
-#launcher-context-menu button:hover {
-    background: rgba(0, 0, 0, 0.04);
+#launcher-context-menu button:hover,
+.launcher-context-action:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+#launcher-context-menu button:focus-visible,
+.launcher-context-action:focus-visible {
+    outline: none;
+    box-shadow: var(--wd-focus-ring);
 }
 
 .launcher-search {
@@ -466,10 +495,10 @@ body {
     bottom: 62px;
     right: 5px;
     width: 20vw;
-    background-color: rgba(55, 55, 55, 0.5);
-    border: 2px inset rgba(200, 200, 255, 0.25);
+    background-color: var(--wd-glass-bg);
+    border: var(--wd-glass-border);
     backdrop-filter: blur(8px);
-    border-radius: 15px 15px 15px 15px;
+    border-radius: var(--wd-radius-lg);
     z-index: 1001;
     box-sizing: border-box;
     display: flex;
@@ -621,4 +650,28 @@ body {
 .footer-icon-btn svg {
     width: 22px;
     height: 22px;
+}
+
+
+.launcher-app.hidden {
+    display: none;
+}
+
+.launcher-app.active {
+    background-color: rgba(255, 255, 255, 0.14);
+    box-shadow: var(--wd-focus-ring);
+}
+
+.launcher-app:focus-visible {
+    outline: none;
+    box-shadow: var(--wd-focus-ring);
+}
+
+.launcher-empty-state {
+    grid-column: 1 / -1;
+    align-self: center;
+    justify-self: center;
+    color: var(--wd-text-muted);
+    padding: 22px 0;
+    font-size: 13px;
 }
