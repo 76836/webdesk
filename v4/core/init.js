@@ -7,6 +7,7 @@ const MAX_RECENT_LAUNCHES = 5;
 const LAUNCHER_SORT_KEY = 'WebDesk_launcher_sort';
 
 const SETTINGS_APP_URL = new URL('../apps/settings', import.meta.url).href;
+const FILES_APP_URL = new URL('../apps/files', import.meta.url).href;
 const APPMAKER_APP_URL = new URL('../apps/appmaker', import.meta.url).href;
 
 let launcherState = {
@@ -415,13 +416,21 @@ class WebDesk {
         this.appManager.registerApp('chrome', {
             title: '76836',
             url: 'https://76836.github.io',
-            pinned: true,
+            pinned: false,
             iconUrl: 'https://76836.github.io/apple-touch-icon.png'
         });
 
         this.appManager.registerApp('themes', {
-            title: '⚙️ Settings',
+            title: 'Settings',
             url: SETTINGS_APP_URL,
+            iconUrl: 'https://76836.github.io/webdesk/images/icons/settings.png'
+            pinned: true
+        });
+ 
+        this.appManager.registerApp('files', {
+            title: 'Files',
+            url: FILES_APP_URL,
+            iconUrl: 'https://76836.github.io/webdesk/images/icons/files.png'
             pinned: true
         });
 
