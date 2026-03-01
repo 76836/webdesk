@@ -423,14 +423,14 @@ class WebDesk {
         this.appManager.registerApp('themes', {
             title: 'Settings',
             url: SETTINGS_APP_URL,
-            iconUrl: 'https://76836.github.io/webdesk/images/icons/settings.png'
+            iconUrl: 'https://76836.github.io/webdesk/images/icons/settings.png',
             pinned: true
         });
  
         this.appManager.registerApp('files', {
             title: 'Files',
             url: FILES_APP_URL,
-            iconUrl: 'https://76836.github.io/webdesk/images/icons/files.png'
+            iconUrl: 'https://76836.github.io/webdesk/images/icons/files.png',
             pinned: true
         });
 
