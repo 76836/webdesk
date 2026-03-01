@@ -4,18 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AppCenter</title>
+    <link rel="stylesheet" href="../style.css">
 <style>
     :root {
-        --primary: #d3e3fd;
-        --on-primary: #041e49;
-        --surface: #f7f9fc;
-        --secondary-container: #e8def8;
-        --on-secondary-container: #1d192b;
-        --error: #f9dedc;
-        --on-error: #410e0b;
-        --outline: #747775;
-        --text: #1f1f1f;
-        --card: #ffffff;
+        --primary: #25ffff;
+        --on-primary: #021b25;
+        --surface: #0b1117;
+        --secondary-container: rgba(55, 55, 55, 0.5);
+        --on-secondary-container: #e4f3ff;
+        --error: #8c1d18;
+        --on-error: #f9dedc;
+        --outline: rgba(200, 200, 255, 0.25);
+        --text: #e4f3ff;
+        --card: rgba(55, 55, 55, 0.5);
     }
 
     @media (prefers-color-scheme: dark) {
@@ -36,7 +37,7 @@
     body {
         margin: 0;
         font-family: 'Segoe UI', Roboto, sans-serif;
-        background: var(--surface);
+        background: transparent;
         color: var(--text);
         padding: 16px;
         display: grid;
@@ -44,10 +45,14 @@
         max-width: 800px;
         margin: auto;
         transition: background-color 0.3s ease;
+        overflow: auto;
+        min-height: 100%;
     }
 
     section {
         background: var(--card);
+        border: var(--wd-glass-border);
+        backdrop-filter: blur(8px);
         padding: 24px;
         border-radius: 28px;
         box-shadow: 0 1px 2px rgba(0,0,0,0.05);
@@ -133,14 +138,14 @@
     <script>
         const BASE_URL = "https://76836.github.io/";
         const catalog = [
-            { title: "Akari", path: "Akari/app", iconUrl: "https://76836.github.io/Akari/logo512.png" },
+            { title: "Akari", path: "Akari/app", iconUrl: "https://76836.github.io/Akari/images/logo512.png" },
             //{ title: "AppCenter", path: "AppCenter" },
             { title: "Digita", path: "Digita", iconUrl: "https://76836.github.io/Digita/logo/512.png" },
             { title: "side-glow", path: "side-glow" },
             { title: "Lunabot", path: "lunabot/app", iconUrl: "https://76836.github.io/lunabot/app/icon-512.png" },
             { title: "Terminal", path: "webdesk/programs/terminal", iconUrl: "https://76836.github.io/webdesk/programs/terminal/apple-touch-icon.png" },
             //{ title: "Webdesk", path: "bootloader" },
-            { title: "Animaxxer", path: "animaxxer" },
+            { title: "Animaxxer", path: "animaxxer", iconUrl: "https://76836.github.io/animaxxer/icon-512.png"},
             //{ title: "404", path: "404" },
             { title: "CtrlBox", path: "ctrlbox", iconUrl: "https://76836.github.io/ctrlbox/icon.png" },
             //{ title: "Wanderer", path: "Wanderer" },

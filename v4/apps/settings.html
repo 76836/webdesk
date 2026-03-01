@@ -2,100 +2,226 @@
 <html>
 <head>
     <title>Settings</title>
+    <link rel="stylesheet" href="../style.css">
     <style>
-        body {
-            margin: 0;
-            font-family: Roboto, sans-serif;
-            background: #f8f9fa;
-            color: #3c4043;
-        }
-
-        .settings-app {
-            display: flex;
-            height: 100vh;
-        }
-
-        .sidebar {
-            width: 200px;
-            background: #fff;
-            border-right: 1px solid #dadce0;
-            padding: 20px 0;
-        }
-
-        .sidebar-item {
-            padding: 12px 24px;
-            cursor: pointer;
-            color: #5f6368;
-        }
-
-        .sidebar-item:hover {
-            background: rgba(0,0,0,0.08);
-        }
-
-        .sidebar-item.active {
-            color: #8ab4f8;
-            background: rgba(0,0,0,0.12);
-        }
-
-        .main-content {
-            flex-grow: 1;
-            padding: 24px;
-            overflow: auto;
-        }
-
-        .wallpaper-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 16px;
-        }
-
-        .wallpaper-item {
-            aspect-ratio: 16/9;
-            background-size: cover;
-            background-position: center;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: transform 0.2s;
-            border: 2px solid transparent;
-        }
-
-        .wallpaper-item:hover {
-            transform: scale(1.02);
-        }
-
-        .wallpaper-item.active {
-            border-color: #8ab4f8;
-        }
+        body { margin: 0; font-family: Roboto, sans-serif; background: transparent; color: var(--wd-text-main); }
+        .settings-app { display: flex; height: 100vh; gap: 12px; padding: 12px; box-sizing: border-box; }
+        .sidebar, .main-content { background: var(--wd-glass-bg); border: var(--wd-glass-border); backdrop-filter: blur(8px); border-radius: var(--wd-radius-lg); }
+        .sidebar { width: 220px; padding: 16px 0; display: flex; flex-direction: column; gap: 6px; }
+        .sidebar-item { padding: 12px 20px; cursor: pointer; color: var(--wd-text-muted); border-left: 2px solid transparent; transition: 0.2s ease; }
+        .sidebar-item:hover, .sidebar-item.active { color: var(--wd-text-main); border-left-color: var(--wd-accent); background: rgba(255,255,255,0.12); }
+        .main-content { flex-grow: 1; padding: 20px; overflow: auto; display: flex; flex-direction: column; min-height: 0; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tab-content[data-tab="apps"].active { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+        h2 { margin: 0 0 14px; }
+        .wallpaper-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+        .wallpaper-item-wrap { position: relative; }
+        .wallpaper-item { aspect-ratio: 16 / 9; background-size: cover; background-position: center; border-radius: var(--wd-radius-md); cursor: pointer; border: 2px solid transparent; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .wallpaper-item:hover { transform: translateY(-2px); }
+        .wallpaper-item.active { border-color: var(--wd-accent); box-shadow: var(--wd-focus-ring); }
+        .wallpaper-delete { position: absolute; top: 6px; right: 6px; border: 0; border-radius: 999px; width: 26px; height: 26px; background: rgba(180, 40, 40, 0.9); color: white; cursor: pointer; }
+        .settings-card { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.18); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+        .btn { border: 0; border-radius: 8px; padding: 8px 12px; cursor: pointer; color: white; background: rgba(255,255,255,0.2); }
+        .btn-danger { background: rgba(190, 50, 50, 0.8); }
+        .upload-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .muted { color: var(--wd-text-muted); font-size: 13px; }
+        .apps-frame { width: 100%; flex: 1; min-height: 420px; border: 0; border-radius: 12px; background: transparent; overflow: auto; }
     </style>
 </head>
 <body>
     <div class="settings-app">
         <div class="sidebar">
-            <div class="sidebar-item active">Wallpaper</div>
-            <div onclick="window.location = './appmaker.html';" class="sidebar-item">Apps</div>
+            <div class="sidebar-item active" data-tab="wallpaper">Wallpaper</div>
+            <div class="sidebar-item" data-tab="apps">Apps</div>
+            <div class="sidebar-item" data-tab="debug">Debug & Reset</div>
         </div>
         <div class="main-content">
-            <h2>Wallpaper</h2>
-            <div class="wallpaper-grid">
-                <div class="wallpaper-item" style="background-image: url('https://76836.github.io/Akari/wallpapers/akari.jpg')" onclick="setWallpaper(this.style.backgroundImage)"></div>
-                <div class="wallpaper-item" style="background-image: url('https://76836.github.io/Akari/wallpapers/luna.png')" onclick="setWallpaper(this.style.backgroundImage)"></div>
-                <div class="wallpaper-item" style="background-image: url('https://76836.github.io/Akari/wallpapers/backdrop.png')" onclick="setWallpaper(this.style.backgroundImage)"></div>
-                <div class="wallpaper-item" style="background-image: url('https://76836.github.io/Akari/wallpapers/Foreshadowing.jpg')" onclick="setWallpaper(this.style.backgroundImage)"></div>
-                <div class="wallpaper-item" style="background-image: url('https://76836.github.io/Akari/wallpapers/colors.jpg')" onclick="setWallpaper(this.style.backgroundImage)"></div>
-            </div>
+            <section class="tab-content active" data-tab="wallpaper">
+                <h2>Wallpaper</h2>
+                <div class="settings-card">
+                    <div class="upload-row">
+                        <input type="file" id="wallpaper-upload" accept="image/*">
+                    </div>
+                    <p class="muted">Uploaded wallpapers are saved in IndexedDB and available next session. Use the red X button on custom wallpapers to delete individually.</p>
+                </div>
+                <div id="wallpaper-grid" class="wallpaper-grid"></div>
+            </section>
+
+            <section class="tab-content" data-tab="apps">
+                <h2>Apps</h2>
+                <iframe class="apps-frame" src="./appmaker"></iframe>
+            </section>
+
+            <section class="tab-content" data-tab="debug">
+                <h2>Debug & Reset</h2>
+                <div class="settings-card">
+                    <p class="muted">Use these actions for troubleshooting.</p>
+                    <div class="upload-row">
+                        <button class="btn" id="open-appcenter">Open AppCenter in new window</button>
+                        <button class="btn" id="clear-recents">Clear launcher recents</button>
+                        <button class="btn btn-danger" id="reset-webdesk">Reset WebDesk local data</button>
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
+
     <script>
-        function setWallpaper(url) {
-            // Remove url() wrapper
-            url = url.slice(4, -1).replace(/['"]/g, '');
-            // Send message to parent window
-            window.parent.postMessage({ type: 'setWallpaper', url }, '*');
-            // Update active state
-            document.querySelectorAll('.wallpaper-item').forEach(item => {
-                item.classList.toggle('active', item.style.backgroundImage.includes(url));
+        const DB_NAME = 'WebDeskSettingsDB';
+        const STORE = 'customWallpapers';
+        const BUILTIN_WALLPAPERS = [
+            'https://76836.github.io/Akari/wallpapers/akari.jpg',
+            'https://76836.github.io/Akari/wallpapers/luna.png',
+            'https://76836.github.io/Akari/wallpapers/backdrop.png',
+            'https://76836.github.io/Akari/wallpapers/Foreshadowing.jpg',
+            'https://76836.github.io/Akari/wallpapers/colors.jpg'
+        ];
+
+        let dbPromise;
+        function openDB() {
+            if (dbPromise) return dbPromise;
+            dbPromise = new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = () => {
+                    const db = request.result;
+                    if (!db.objectStoreNames.contains(STORE)) {
+                        db.createObjectStore(STORE, { keyPath: 'id' });
+                    }
+                };
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+            return dbPromise;
+        }
+
+        async function getCustomWallpapers() {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE, 'readonly');
+                const req = tx.objectStore(STORE).getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => reject(req.error);
             });
         }
+
+        async function saveCustomWallpaper(dataUrl, name) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE, 'readwrite');
+                tx.objectStore(STORE).put({ id: `custom-${Date.now()}-${Math.random().toString(16).slice(2)}`, dataUrl, name: name || 'Custom wallpaper' });
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        async function deleteCustomWallpaper(id) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(STORE, 'readwrite');
+                tx.objectStore(STORE).delete(id);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        function setWallpaper(url) {
+            window.parent.postMessage({ type: 'setWallpaper', url }, '*');
+            localStorage.setItem('wallpaper', url);
+            document.querySelectorAll('.wallpaper-item').forEach(item => item.classList.toggle('active', item.dataset.url === url));
+        }
+
+        function createWallpaperItem(url, customId = null) {
+            const wrap = document.createElement('div');
+            wrap.className = 'wallpaper-item-wrap';
+            const div = document.createElement('div');
+            div.className = 'wallpaper-item';
+            div.style.backgroundImage = `url('${url}')`;
+            div.dataset.url = url;
+            div.addEventListener('click', () => setWallpaper(url));
+            wrap.appendChild(div);
+
+            if (customId) {
+                const del = document.createElement('button');
+                del.className = 'wallpaper-delete';
+                del.textContent = '×';
+                del.title = 'Delete wallpaper';
+                del.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    await deleteCustomWallpaper(customId);
+                    await renderWallpapers();
+                });
+                wrap.appendChild(del);
+            }
+            return wrap;
+        }
+
+        async function renderWallpapers() {
+            const grid = document.getElementById('wallpaper-grid');
+            grid.innerHTML = '';
+            BUILTIN_WALLPAPERS.forEach((url) => grid.appendChild(createWallpaperItem(url)));
+            const custom = await getCustomWallpapers();
+            custom.forEach((wallpaper) => grid.appendChild(createWallpaperItem(wallpaper.dataUrl, wallpaper.id)));
+
+            const active = localStorage.getItem('wallpaper');
+            if (active) {
+                document.querySelectorAll('.wallpaper-item').forEach(item => item.classList.toggle('active', item.dataset.url === active));
+            }
+        }
+
+        function setupTabs() {
+            const items = document.querySelectorAll('.sidebar-item');
+            const tabs = document.querySelectorAll('.tab-content');
+            items.forEach((item) => {
+                item.addEventListener('click', () => {
+                    const tab = item.dataset.tab;
+                    items.forEach(i => i.classList.toggle('active', i === item));
+                    tabs.forEach(t => t.classList.toggle('active', t.dataset.tab === tab));
+                });
+            });
+        }
+
+        function setupActions() {
+            document.getElementById('wallpaper-upload').addEventListener('change', async (event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = async () => {
+                    await saveCustomWallpaper(reader.result, file.name);
+                    await renderWallpapers();
+                };
+                reader.readAsDataURL(file);
+            });
+
+            document.getElementById('open-appcenter').addEventListener('click', () => {
+                window.parent.postMessage({ type: 'registerApp', app: { id: 'appmaker', config: { title: 'AppCenter', url: './apps/appmaker', pinned: true } } }, '*');
+                window.location.href = './appmaker';
+            });
+
+            document.getElementById('clear-recents').addEventListener('click', () => {
+                localStorage.removeItem('WebDesk_recent_launches');
+                alert('Launcher recents cleared.');
+            });
+
+            document.getElementById('reset-webdesk').addEventListener('click', async () => {
+                if (!confirm('Reset local WebDesk data?')) return;
+                localStorage.clear();
+                const db = await openDB();
+                db.close();
+                indexedDB.deleteDatabase(DB_NAME);
+                window.parent.location.reload();
+            });
+
+            window.addEventListener('message', (event) => {
+                if (event.data?.type === 'settingsTab') {
+                    document.querySelector(`.sidebar-item[data-tab="${event.data.tab}"]`)?.click();
+                }
+            });
+        }
+
+        setupTabs();
+        setupActions();
+        renderWallpapers();
     </script>
 </body>
 </html>

@@ -29,14 +29,10 @@ class WindowManager {
     registerApp(id, config) {
         this.appConfigs.set(id, config);
         if (config.pinned) {
-            this.pinnedApps.push(id);
-            const taskbarIcon = document.createElement('div');
-            taskbarIcon.className = 'shelf-item';
-            taskbarIcon.dataset.appId = id;
-            taskbarIcon.title = config.title;
-            this.setTaskbarIcon(taskbarIcon, config);
-            taskbarIcon.addEventListener('click', () => this.createWindow(id, config));
-            document.querySelector('.shelf-items-left').appendChild(taskbarIcon);
+            if (!this.pinnedApps.includes(id)) {
+                this.pinnedApps.push(id);
+            }
+            this.addTaskbarIcon(id, config);
         }
     }
 
@@ -53,6 +49,38 @@ class WindowManager {
         }
     }
 
+
+    addTaskbarIcon(id, config) {
+        let taskbarIcon = document.querySelector(`.shelf-item[data-app-id="${id}"]`);
+        if (taskbarIcon) return taskbarIcon;
+
+        taskbarIcon = document.createElement('div');
+        taskbarIcon.className = 'shelf-item';
+        taskbarIcon.dataset.appId = id;
+        taskbarIcon.title = config.title;
+        this.setTaskbarIcon(taskbarIcon, config);
+
+        taskbarIcon.onclick = () => {
+            const appConfig = this.appConfigs.get(id) || config;
+            if (!appConfig) return;
+            if (this.openWindows.has(id)) {
+                this.toggleWindow(id);
+            } else {
+                this.createWindow(id, appConfig);
+            }
+        };
+
+        taskbarIcon.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            if (window.showAppContextMenu) {
+                window.showAppContextMenu(event.pageX, event.pageY, id);
+            }
+        });
+
+        document.querySelector('.shelf-items-left').appendChild(taskbarIcon);
+        return taskbarIcon;
+    }
+
     createWindow(id, config) {
         const existingWindow = this.openWindows.get(id);
         if (existingWindow) {
@@ -60,15 +88,7 @@ class WindowManager {
             return;
         }
 
-        let taskbarIcon = document.querySelector(`.shelf-item[data-app-id="${id}"]`);
-        if (!taskbarIcon) {
-            taskbarIcon = document.createElement('div');
-            taskbarIcon.className = 'shelf-item';
-            taskbarIcon.dataset.appId = id;
-            taskbarIcon.title = config.title;
-            this.setTaskbarIcon(taskbarIcon, config);
-            document.querySelector('.shelf-items-left').appendChild(taskbarIcon);
-        }
+        const taskbarIcon = this.addTaskbarIcon(id, config);
 
         const windowEl = document.createElement('div');
         windowEl.className = 'app-window';
@@ -96,9 +116,12 @@ class WindowManager {
 
         const content = windowEl.querySelector('.app-content');
         const iframe = document.createElement('iframe');
-        iframe.src = config.url.startsWith('http') ? config.url : new URL(config.url, window.location.origin).href;
+        iframe.src = config.url;
         iframe.frameBorder = '0';
         iframe.width = '100%';
+        iframe.height = '100%';
+        iframe.style.flex = '1';
+        iframe.style.display = 'block';
         content.appendChild(iframe);
 
         document.querySelector('.os-desktop').appendChild(windowEl);
@@ -123,7 +146,12 @@ class WindowManager {
         el.querySelector('.minimize').onclick = (e) => { e.stopPropagation(); this.minimizeWindow(id); };
         el.querySelector('.maximize').onclick = (e) => { e.stopPropagation(); this.toggleMaximize(id); };
         el.querySelector('.close').onclick = (e) => { e.stopPropagation(); this.closeWindow(id); };
-        win.taskbarIcon.onclick = () => this.toggleWindow(id);
+        win.taskbarIcon.oncontextmenu = (event) => {
+            event.preventDefault();
+            if (window.showAppContextMenu) {
+                window.showAppContextMenu(event.pageX, event.pageY, id);
+            }
+        };
 
         el.onmousedown = () => {
             if (win.state === 'open') el.style.zIndex = ++this.nextZIndex;
@@ -296,6 +324,7 @@ class WindowManager {
             img.style.width = '100%';
             img.style.height = '100%';
             img.style.objectFit = 'cover';
+            img.style.borderRadius = '50%';
             img.addEventListener('error', () => {
                 img.style.display = 'none';
                 element.innerHTML = this.generateIcon(config.title);
