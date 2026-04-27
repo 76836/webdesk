@@ -41,10 +41,11 @@
                 <h2>Wallpaper</h2>
                 <div class="settings-card">
                     <div class="upload-row">
-                        <input type="file" id="wallpaper-upload" accept="image/*">
+                        <input type="file" id="wallpaper-upload" accept="image/*,video/*">
                     </div>
-                    <p class="muted">Uploaded wallpapers are saved in IndexedDB and available next session. Use the red X button on custom wallpapers to delete individually.</p>
+                    <p class="muted">Choose wallpapers from built-ins, WebDesk Files, or drag/drop from your computer or other WebDesk apps.</p>
                 </div>
+                <div id="wallpaper-drop" class="settings-card muted">Drop an image/video here to set wallpaper instantly.</div>
                 <div id="wallpaper-grid" class="wallpaper-grid"></div>
             </section>
 
@@ -68,8 +69,6 @@
     </div>
 
     <script>
-        const DB_NAME = 'WebDeskSettingsDB';
-        const STORE = 'customWallpapers';
         const BUILTIN_WALLPAPERS = [
             'https://76836.github.io/Akari/wallpapers/akari.jpg',
             'https://76836.github.io/Akari/wallpapers/luna.png',
@@ -78,90 +77,79 @@
             'https://76836.github.io/Akari/wallpapers/colors.jpg'
         ];
 
-        let dbPromise;
-        function openDB() {
-            if (dbPromise) return dbPromise;
-            dbPromise = new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, 1);
-                request.onupgradeneeded = () => {
-                    const db = request.result;
-                    if (!db.objectStoreNames.contains(STORE)) {
-                        db.createObjectStore(STORE, { keyPath: 'id' });
-                    }
-                };
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
-            return dbPromise;
-        }
-
-        async function getCustomWallpapers() {
-            const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE, 'readonly');
-                const req = tx.objectStore(STORE).getAll();
-                req.onsuccess = () => resolve(req.result || []);
-                req.onerror = () => reject(req.error);
-            });
-        }
-
-        async function saveCustomWallpaper(dataUrl, name) {
-            const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE, 'readwrite');
-                tx.objectStore(STORE).put({ id: `custom-${Date.now()}-${Math.random().toString(16).slice(2)}`, dataUrl, name: name || 'Custom wallpaper' });
-                tx.oncomplete = () => resolve();
-                tx.onerror = () => reject(tx.error);
-            });
-        }
-
-        async function deleteCustomWallpaper(id) {
-            const db = await openDB();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(STORE, 'readwrite');
-                tx.objectStore(STORE).delete(id);
-                tx.oncomplete = () => resolve();
-                tx.onerror = () => reject(tx.error);
-            });
-        }
-
         function setWallpaper(url) {
+            if (!url) return;
             window.parent.postMessage({ type: 'setWallpaper', url }, '*');
             localStorage.setItem('wallpaper', url);
             document.querySelectorAll('.wallpaper-item').forEach(item => item.classList.toggle('active', item.dataset.url === url));
         }
 
-        function createWallpaperItem(url, customId = null) {
+        function fileIsWallpaper(url = '') {
+            return url.startsWith('data:image') || url.startsWith('data:video') || /\.(png|jpe?g|gif|webp|bmp|svg|mp4|webm|mov|m4v|ogg)$/i.test(url);
+        }
+
+        function createWallpaperItem(url, label = 'Wallpaper') {
             const wrap = document.createElement('div');
             wrap.className = 'wallpaper-item-wrap';
             const div = document.createElement('div');
             div.className = 'wallpaper-item';
             div.style.backgroundImage = `url('${url}')`;
             div.dataset.url = url;
+            div.title = label;
             div.addEventListener('click', () => setWallpaper(url));
             wrap.appendChild(div);
-
-            if (customId) {
-                const del = document.createElement('button');
-                del.className = 'wallpaper-delete';
-                del.textContent = '×';
-                del.title = 'Delete wallpaper';
-                del.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    await deleteCustomWallpaper(customId);
-                    await renderWallpapers();
-                });
-                wrap.appendChild(del);
-            }
             return wrap;
+        }
+
+        function readFilesLocal() {
+            const out = [];
+            let cf = {};
+            try { cf = JSON.parse(localStorage.getItem('cf4') || '{}'); } catch { cf = {}; }
+            Object.values(cf || {}).forEach((item) => {
+                if (item?.type === 'file' && fileIsWallpaper(item.content || '')) out.push({ url: item.content, label: item.name || 'File' });
+            });
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (!key || key === 'cf4' || key.startsWith('cf_')) continue;
+                const value = localStorage.getItem(key) || '';
+                if (fileIsWallpaper(value) || (/\//.test(key) && /\.(png|jpe?g|gif|webp|bmp|svg|mp4|webm|mov|m4v|ogg)$/i.test(key))) {
+                    out.push({ url: value, label: key });
+                }
+            }
+            return out;
+        }
+
+        function openFilesDb() { return new Promise((res, rej) => { const r = indexedDB.open('WebDeskFiles', 1); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+        async function readFilesIndexedDb() {
+            try {
+                const db = await openFilesDb();
+                const tx = db.transaction('fs', 'readonly');
+                const req = tx.objectStore('fs').get('data');
+                return await new Promise((resolve) => {
+                    req.onsuccess = () => {
+                        const data = req.result || {};
+                        const list = Object.values(data).filter((item) => item?.type === 'file' && fileIsWallpaper(item.content || '')).map((item) => ({ url: item.content, label: item.name || 'Indexed file' }));
+                        resolve(list);
+                    };
+                    req.onerror = () => resolve([]);
+                });
+            } catch {
+                return [];
+            }
         }
 
         async function renderWallpapers() {
             const grid = document.getElementById('wallpaper-grid');
             grid.innerHTML = '';
-            BUILTIN_WALLPAPERS.forEach((url) => grid.appendChild(createWallpaperItem(url)));
-            const custom = await getCustomWallpapers();
-            custom.forEach((wallpaper) => grid.appendChild(createWallpaperItem(wallpaper.dataUrl, wallpaper.id)));
+            BUILTIN_WALLPAPERS.forEach((url) => grid.appendChild(createWallpaperItem(url, 'Built-in')));
+            const fromLocal = readFilesLocal();
+            const fromIdb = await readFilesIndexedDb();
+            const seen = new Set(BUILTIN_WALLPAPERS);
+            [...fromLocal, ...fromIdb].forEach((item) => {
+                if (!item.url || seen.has(item.url) || !fileIsWallpaper(item.url)) return;
+                seen.add(item.url);
+                grid.appendChild(createWallpaperItem(item.url, item.label));
+            });
 
             const active = localStorage.getItem('wallpaper');
             if (active) {
@@ -181,16 +169,38 @@
             });
         }
 
+        function setWallpaperFromFile(file) {
+            if (!file || !/^(image|video)\//.test(file.type || '')) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                setWallpaper(reader.result);
+                renderWallpapers();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function setupWallpaperDrop() {
+            const drop = document.getElementById('wallpaper-drop');
+            const over = (event) => {
+                if (event.dataTransfer?.files?.length || event.dataTransfer?.types?.includes('application/x-webdesk-file') || event.dataTransfer?.types?.includes('text/uri-list')) {
+                    event.preventDefault();
+                }
+            };
+            drop.addEventListener('dragover', over);
+            drop.addEventListener('drop', (event) => {
+                event.preventDefault();
+                const uri = event.dataTransfer.getData('text/uri-list');
+                if (uri && fileIsWallpaper(uri)) setWallpaper(uri);
+                const file = event.dataTransfer?.files?.[0];
+                if (file) setWallpaperFromFile(file);
+            });
+        }
+
         function setupActions() {
             document.getElementById('wallpaper-upload').addEventListener('change', async (event) => {
                 const file = event.target.files?.[0];
                 if (!file) return;
-                const reader = new FileReader();
-                reader.onload = async () => {
-                    await saveCustomWallpaper(reader.result, file.name);
-                    await renderWallpapers();
-                };
-                reader.readAsDataURL(file);
+                setWallpaperFromFile(file);
             });
 
             document.getElementById('open-appcenter').addEventListener('click', () => {
@@ -206,9 +216,7 @@
             document.getElementById('reset-webdesk').addEventListener('click', async () => {
                 if (!confirm('Reset local WebDesk data?')) return;
                 localStorage.clear();
-                const db = await openDB();
-                db.close();
-                indexedDB.deleteDatabase(DB_NAME);
+                indexedDB.deleteDatabase('WebDeskFiles');
                 window.parent.location.reload();
             });
 
@@ -220,6 +228,7 @@
         }
 
         setupTabs();
+        setupWallpaperDrop();
         setupActions();
         renderWallpapers();
     </script>
