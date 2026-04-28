@@ -4,8 +4,7 @@ class UIManager {
             time: document.querySelector('.time'),
             date: document.querySelector('.date'),
             statusArea: document.querySelector('.status-area'),
-            quickSettings: document.querySelector('.quick-settings-menu'),
-            closeButton: document.getElementById('qs-close')
+            quickSettings: document.querySelector('.quick-settings-menu')
         };
         this.startTimers();
         this.setupEventListeners();
@@ -18,49 +17,38 @@ class UIManager {
 
     updateDate() {
         const now = new Date();
-        this.elements.date.textContent = now.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+        this.elements.date.textContent = now.toLocaleDateString([], { month: 'short', day: 'numeric' });
     }
 
     startTimers() {
         this.updateTime();
         this.updateDate();
-        setInterval(() => this.updateTime(), 30000);
-        setInterval(() => this.updateDate(), 1800000);
-    }
-
-    openQuickSettings() {
-        this.elements.quickSettings?.classList.remove('hidden');
-    }
-
-    closeQuickSettings() {
-        this.elements.quickSettings?.classList.add('hidden');
+        setInterval(() => this.updateTime(), 60000);
+        setInterval(() => this.updateDate(), 3600000);
     }
 
     setupEventListeners() {
         const quickSettings = this.elements.quickSettings;
         this.elements.statusArea?.addEventListener('click', () => quickSettings?.classList.toggle('hidden'));
-        this.elements.closeButton?.addEventListener('click', () => this.closeQuickSettings());
 
         let startY = 0;
         let tracking = false;
 
-        document.addEventListener('pointerdown', (event) => {
-            if (event.clientY <= 18 || this.elements.statusArea?.contains(event.target)) {
-                tracking = true;
-                startY = event.clientY;
-            }
+        this.elements.statusArea?.addEventListener('pointerdown', (event) => {
+            tracking = true;
+            startY = event.clientY;
         });
 
         document.addEventListener('pointerup', (event) => {
             if (!tracking) return;
-            if (event.clientY - startY > 28) this.openQuickSettings();
+            if (event.clientY - startY > 20) quickSettings?.classList.remove('hidden');
             tracking = false;
         });
 
-        document.addEventListener('click', (event) => {
+        document.addEventListener('click', (e) => {
             if (!quickSettings || quickSettings.classList.contains('hidden')) return;
-            if (!quickSettings.contains(event.target) && !this.elements.statusArea?.contains(event.target)) {
-                this.closeQuickSettings();
+            if (!quickSettings.contains(e.target) && !this.elements.statusArea?.contains(e.target)) {
+                quickSettings.classList.add('hidden');
             }
         });
     }
@@ -75,7 +63,6 @@ class QuickSettings {
         this.batteryStatus = this.menu.querySelector('#battery-status');
         this.fullscreenTile = this.menu.querySelector('#fullscreen-tile');
         this.fullscreenStatus = this.menu.querySelector('#fs-status');
-        this.homeLockTile = this.menu.querySelector('#home-lock-tile');
 
         this.setupSliders();
         this.setupTiles();
@@ -86,9 +73,9 @@ class QuickSettings {
 
     setupSliders() {
         const brightnessSlider = this.menu.querySelector('.brightness-slider input');
-        brightnessSlider?.addEventListener('input', (event) => {
-            const value = Number(event.target.value);
-            document.getElementById('mobile-shell').style.filter = `brightness(${value / 100})`;
+        brightnessSlider?.addEventListener('input', (e) => {
+            const value = Number(e.target.value);
+            document.querySelector('.mobile-shell').style.filter = `brightness(${Math.max(0.35, value / 100)})`;
         });
     }
 
@@ -110,12 +97,6 @@ class QuickSettings {
             localStorage.setItem('WebDesk_lightMode', enabled ? 'on' : 'off');
             this.updateLightModeText(enabled);
         });
-
-        this.homeLockTile?.addEventListener('click', () => {
-            const unlocked = document.body.classList.toggle('home-edit-unlocked');
-            this.homeLockTile.classList.toggle('active', unlocked);
-            this.homeLockTile.querySelector('.tile-sublabel').textContent = unlocked ? 'Edit on' : 'Edit off';
-        });
     }
 
     initLightMode() {
@@ -136,14 +117,10 @@ class QuickSettings {
         if (!this.batteryStatus) return;
         const fallback = () => { this.batteryStatus.textContent = 'Battery: 100% (estimated)'; };
         if (!navigator.getBattery) return fallback();
-
         navigator.getBattery().then((battery) => {
             const update = () => {
                 const percent = Math.round((battery.level || 1) * 100);
-                const charging = battery.charging ? ' • Charging' : '';
-                this.batteryStatus.textContent = `Battery: ${percent}%${charging}`;
-                const pill = document.querySelector('.battery-percent');
-                if (pill) pill.textContent = `${percent}%`;
+                this.batteryStatus.textContent = `Battery: ${percent}%${battery.charging ? ' • Charging' : ''}`;
             };
             update();
             battery.addEventListener('levelchange', update);

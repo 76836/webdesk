@@ -7,46 +7,46 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="mobile-shell os-desktop" id="mobile-shell">
-    <div class="wallpaper-layer" id="wallpaper-layer" aria-hidden="true"></div>
-
+  <div class="mobile-shell os-desktop">
     <header class="status-bar status-area" role="button" aria-label="Open control center">
-      <span class="status-time time">10:10</span>
-      <div class="status-icons">
-        <span class="cell-signal" aria-hidden="true"></span>
+      <div class="status-left"><span class="time">10:10</span></div>
+      <div class="status-center"><span class="date">Apr 27</span></div>
+      <div class="status-right">
         <span class="wifi-icon" aria-hidden="true"></span>
-        <span class="battery-pill"><span class="battery-percent">100%</span></span>
+        <span class="battery-icon" aria-hidden="true"></span>
       </div>
     </header>
 
-    <section class="quick-settings-menu hidden" aria-label="Control center">
-      <div class="quick-settings-top-row">
-        <div class="qs-date date">Apr 28</div>
-        <button class="qs-close" id="qs-close" aria-label="Close control center">✕</button>
-      </div>
-      <div class="quick-settings-grid">
-        <button class="quick-settings-tile active" id="internet-tile"><span class="tile-label">Internet</span><span class="tile-sublabel">Connected</span></button>
-        <button class="quick-settings-tile" id="fullscreen-tile"><span class="tile-label">Fullscreen</span><span class="tile-sublabel" id="fs-status">Off</span></button>
-        <button class="quick-settings-tile lightmode-tile" id="lightmode-tile"><span class="tile-label">Light mode</span><span class="tile-sublabel" id="lightmode-status">Off</span></button>
-        <button class="quick-settings-tile" id="home-lock-tile"><span class="tile-label">Home lock</span><span class="tile-sublabel">Edit off</span></button>
-      </div>
-      <div class="quick-settings-slider brightness-slider">
-        <input type="range" min="30" max="100" value="100" aria-label="Brightness">
-      </div>
-      <div class="quick-settings-footer"><span id="battery-status">Battery: --</span></div>
-    </section>
-
-    <main class="workspace" id="workspace">
-      <section class="home-screen" id="home-screen" aria-label="Home screen">
-        <div class="home-pages-track" id="home-pages-track"></div>
-        <div class="page-indicators" id="page-indicators"></div>
+    <main class="workspace">
+      <section class="home-screen" aria-label="Home screen">
+        <div class="home-grid launcher-grid"></div>
       </section>
 
-      <section class="app-switcher hidden" id="app-switcher" aria-label="Recent apps">
+      <section class="app-switcher hidden" aria-label="Recent apps">
         <div class="switcher-header">Recent apps</div>
         <div class="switcher-list" id="switcher-list"></div>
       </section>
     </main>
+
+    <div class="quick-settings-menu hidden">
+      <div class="quick-settings-header"><span>Control center</span></div>
+      <div class="quick-settings-grid">
+        <button class="quick-settings-tile" id="fullscreen-tile">
+          <span class="tile-label">Fullscreen</span>
+          <span class="tile-sublabel" id="fs-status">Off</span>
+        </button>
+        <button class="quick-settings-tile lightmode-tile" id="lightmode-tile">
+          <span class="tile-label">Light mode</span>
+          <span class="tile-sublabel" id="lightmode-status">Off</span>
+        </button>
+      </div>
+      <div class="quick-settings-slider brightness-slider">
+        <input type="range" min="0" max="101" value="100" aria-label="Brightness">
+      </div>
+      <div class="quick-settings-footer">
+        <span id="battery-status">Battery: --</span>
+      </div>
+    </div>
 
     <nav class="nav-bar" aria-label="Android navigation">
       <button class="nav-button" id="nav-back" aria-label="Back">◁</button>
