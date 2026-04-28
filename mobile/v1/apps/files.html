@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebDesk Files</title>
+  <style>
+    :root {
+      --bg: rgba(0,0,0,0.75);
+      --panel: rgba(0,0,0,0.75);
+      --surface: #1c1c22;
+      --border: rgba(255, 255, 255, 0.07);
+      --hover: rgba(255, 255, 255, 0.05);
+      --active: rgba(59, 130, 246, 0.12);
+      --text: #f0f0f2;
+      --muted: #6b7280;
+      --blue: #009999;
+      --yellow: #fbbf24;
+      --red: #ef4444;
+      --green: #4ade80;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    body {
+      font-family: -apple-system, 'Helvetica Neue', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      overflow: hidden;
+      user-select: none;
+      font-size: 14px
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer
+    }
+
+    #sidebar {
+      width: 240px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0
+    }
+
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0
+    }
+
+    header {
+      height: 56px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+      flex-shrink: 0
+    }
+
+    #toolbar {
+      display: flex;
+      align-items: center;
+      padding: 8px 16px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      gap: 8px
+    }
+
+    #content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px 80px;
+      position: relative;
+      outline: none
+    }
+
+    .sidebar-title {
+      padding: 18px 14px 10px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: -.3px
+    }
+
+    .nav-section {
+      padding: 0 8px 4px
+    }
+
+    .nav-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      padding: 10px 8px 4px
+    }
+
+    .nav-btn {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: none;
+      background: none;
+      color: var(--muted);
+      text-align: left;
+      font-size: 13px;
+      transition: background .12s, color .12s
+    }
+
+    .nav-btn:hover {
+      background: var(--hover);
+      color: var(--text)
+    }
+
+    .nav-btn.active {
+      background: var(--active);
+      color: var(--blue);
+      font-weight: 600
+    }
+
+    .nav-btn svg {
+      flex-shrink: 0;
+      opacity: .8
+    }
+
+    .nav-btn.drive-drop {
+      border: 1px dashed var(--blue);
+      color: var(--blue);
+      background: var(--active)
+    }
+
+    .storage-box {
+      margin: auto 10px 10px;
+      padding: 10px;
+      background: var(--hover);
+      border-radius: 9px
+    }
+
+    .storage-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 5px
+    }
+
+    .storage-track {
+      height: 4px;
+      background: rgba(255, 255, 255, .1);
+      border-radius: 2px;
+      overflow: hidden
+    }
+
+    .storage-fill {
+      height: 100%;
+      background: var(--blue);
+      border-radius: 2px;
+      transition: width .3s
+    }
+
+    #search {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 12px;
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+      flex: 1;
+      min-width: 0
+    }
+
+    #search::placeholder {
+      color: var(--muted)
+    }
+
+    #search:focus {
+      border-color: rgba(59, 130, 246, .4)
+    }
+
+    .new-wrap {
+      position: relative;
+      flex-shrink: 0
+    }
+
+    #new-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600
+    }
+
+    #new-btn:hover {
+      background: #2563eb
+    }
+
+    #new-drop {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, .6);
+      z-index: 300;
+      min-width: 160px;
+      display: none
+    }
+
+    #new-drop.open {
+      display: block
+    }
+
+    .dd-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: none;
+      background: none;
+      color: var(--text);
+      font-size: 13px;
+      text-align: left
+    }
+
+    .dd-item:hover {
+      background: var(--hover)
+    }
+
+    .dd-div {
+      height: 1px;
+      background: var(--border);
+      margin: 3px 0
+    }
+
+    .btn-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--muted)
+    }
+
+    .btn-icon:hover {
+      color: var(--text);
+      background: var(--hover)
+    }
+
+    #breadcrumbs {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      overflow-x: auto;
+      flex: 1;
+      white-space: nowrap
+    }
+
+    .bc-item {
+      padding: 2px 5px;
+      border-radius: 4px
+    }
+
+    .bc-item:not(.current) {
+      cursor: pointer
+    }
+
+    .bc-item:not(.current):hover {
+      color: var(--text);
+      background: var(--hover)
+    }
+
+    .bc-item.current {
+      color: var(--text);
+      font-weight: 600
+    }
+
+    .layout-toggle {
+      display: flex;
+      gap: 2px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 2px;
+      flex-shrink: 0
+    }
+
+    .lt-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 27px;
+      height: 23px;
+      border-radius: 5px;
+      border: none;
+      background: none;
+      color: var(--muted)
+    }
+
+    .lt-btn.active {
+      background: var(--hover);
+      color: var(--text)
+    }
+
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 8px
+    }
+
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px
+    }
+
+    .item {
+      position: relative;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      transition: background .1s, border-color .1s
+    }
+
+    .file-grid .item {
+      padding: 14px 10px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center
+    }
+
+    .file-list .item {
+      padding: 7px 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px
+    }
+
+    .item:hover {
+      background: var(--hover)
+    }
+
+    .item.selected {
+      background: var(--active);
+      border-color: rgba(59, 130, 246, .35)
+    }
+
+    .item.drag-over {
+      border-color: var(--blue);
+      background: var(--active)
+    }
+
+    .item-icon {
+      flex-shrink: 0
+    }
+
+    .file-grid .item-icon {
+      width: 42px;
+      height: 42px;
+      margin-bottom: 7px
+    }
+
+    .file-list .item-icon {
+      width: 18px;
+      height: 18px
+    }
+
+    .item-name {
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%
+    }
+
+    .file-list .item-name {
+      font-size: 13px;
+      flex: 1;
+      min-width: 0
+    }
+
+    .item-meta {
+      font-size: 10px;
+      color: var(--muted);
+      margin-top: 2px
+    }
+
+    .file-list .item-meta {
+      font-size: 12px;
+      white-space: nowrap
+    }
+
+    .item-date {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+      width: 80px;
+      text-align: right
+    }
+
+    .star-dot {
+      color: var(--yellow)
+    }
+
+    .file-grid .star-dot {
+      position: absolute;
+      top: 7px;
+      right: 7px
+    }
+
+    .file-list .star-dot {
+      margin-left: auto
+    }
+
+    #marquee {
+      position: fixed;
+      border: 1px solid var(--blue);
+      background: rgba(59, 130, 246, .08);
+      border-radius: 3px;
+      pointer-events: none;
+      display: none;
+      z-index: 50
+    }
+
+    .empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 24px;
+      color: var(--muted);
+      gap: 10px;
+      grid-column: 1/-1
+    }
+
+    .empty svg {
+      opacity: .2
+    }
+
+    .empty p {
+      font-size: 13px
+    }
+
+    #ctx {
+      position: fixed;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, .6);
+      z-index: 400;
+      min-width: 170px;
+      display: none
+    }
+
+    .ctx-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 7px 10px;
+      border-radius: 6px;
+      border: none;
+      background: none;
+      color: var(--text);
+      font-size: 13px;
+      text-align: left
+    }
+
+    .ctx-item:hover {
+      background: var(--hover)
+    }
+
+    .ctx-item.danger {
+      color: var(--red)
+    }
+
+    .ctx-item.success {
+      color: var(--green)
+    }
+
+    .ctx-div {
+      height: 1px;
+      background: var(--border);
+      margin: 3px 0
+    }
+
+    #modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, .9);
+      z-index: 500;
+      display: none;
+      flex-direction: column;
+      padding: 18px
+    }
+
+    .modal-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px
+    }
+
+    .modal-title {
+      font-weight: 700;
+      font-size: 15px;
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap
+    }
+
+    .modal-body {
+      flex: 1;
+      background: var(--surface);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center
+    }
+
+    #prev-img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      display: none
+    }
+
+    #prev-text {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      color: var(--text);
+      padding: 18px;
+      border: none;
+      resize: none;
+      font-family: 'Menlo', 'Consolas', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      outline: none;
+      display: none
+    }
+
+    #prev-none {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      color: var(--muted);
+      text-align: center;
+      padding: 24px
+    }
+
+    select.fmt {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 4px 8px;
+      border-radius: 7px;
+      outline: none;
+      font-size: 12px
+    }
+
+    #toast {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 7px 14px;
+      font-size: 13px;
+      z-index: 600;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .18s, transform .18s;
+      white-space: nowrap
+    }
+
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0)
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px
+    }
+
+    @media(max-width:680px) {
+      #sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        z-index: 200;
+        transform: translateX(-100%);
+        transition: transform .22s
+      }
+
+      #sidebar.open {
+        transform: none;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, .5)
+      }
+
+      #overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, .5);
+        z-index: 190
+      }
+
+      #overlay.on {
+        display: block
+      }
+
+      #menu-btn {
+        display: flex !important
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="overlay" onclick="closeSidebar()"></div>
+
+  <aside id="sidebar">
+    <div class="sidebar-title">WebDesk Files</div>
+    <nav class="nav-section">
+      <div class="nav-label">Drives</div>
+      <button class="nav-btn active" id="nav-local" data-drive="local" onclick="switchDrive('local')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <line x1="8" y1="21" x2="16" y2="21" />
+          <line x1="12" y1="17" x2="12" y2="21" />
+        </svg>
+        Local Storage
+      </button>
+      <button class="nav-btn" id="nav-indexeddb" data-drive="indexeddb" onclick="switchDrive('indexeddb')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <ellipse cx="12" cy="5" rx="9" ry="3" />
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+        </svg>
+        IndexedDB
+      </button>
+    </nav>
+    <nav class="nav-section">
+      <div class="nav-label">Library</div>
+      <button class="nav-btn active" data-view="all" onclick="switchView('all')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+        </svg>
+        All Files
+      </button>
+      <button class="nav-btn" data-view="starred" onclick="switchView('starred')">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon
+            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+        Starred
+      </button>
+      <button class="nav-btn" data-view="trash" onclick="switchView('trash')" oncontextmenu="trashCtx(event)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6" />
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        </svg>
+        Trash
+      </button>
+    </nav>
+    <div class="storage-box">
+      <div class="storage-row"><span>Usage</span><span id="s-val">0 B</span></div>
+      <div class="storage-track">
+        <div class="storage-fill" id="s-fill" style="width:0%"></div>
+      </div>
+    </div>
+  </aside>
+
+  <main id="main">
+    <header>
+      <button id="menu-btn" style="display:none" class="btn-icon" onclick="openSidebar()">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </svg>
+      </button>
+      <input id="search" placeholder="Search files…" oninput="render()">
+      <div class="new-wrap">
+        <button id="new-btn" onclick="toggleNewDrop(event)">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+          New
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+        </button>
+        <div id="new-drop">
+          <button class="dd-item" onclick="createFolder()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+              <line x1="12" y1="11" x2="12" y2="17" />
+              <line x1="9" y1="14" x2="15" y2="14" />
+            </svg>
+            New Folder
+          </button>
+          <button class="dd-item" onclick="createTextFile()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+              <line x1="16" y1="13" x2="8" y2="13" />
+              <line x1="16" y1="17" x2="8" y2="17" />
+            </svg>
+            New Text File
+          </button>
+          <div class="dd-div"></div>
+          <button class="dd-item" onclick="document.getElementById('fu').click();closeNewDrop()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            Upload Files
+          </button>
+        </div>
+      </div>
+      <input type="file" id="fu" style="display:none" multiple onchange="handleUpload(event)">
+    </header>
+
+    <div id="toolbar">
+      <nav id="breadcrumbs"></nav>
+      <select id="sort-sel" onchange="render()"
+        style="background:var(--surface);color:var(--text);border:1px solid var(--border);padding:4px 8px;border-radius:7px;outline:none;font-size:12px;flex-shrink:0">
+        <option value="name">Name</option>
+        <option value="date">Date</option>
+        <option value="size">Size</option>
+        <option value="type">Type</option>
+      </select>
+      <div class="layout-toggle">
+        <button class="lt-btn active" id="lt-grid" onclick="setLayout('grid')" title="Grid">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+          </svg>
+        </button>
+        <button class="lt-btn" id="lt-list" onclick="setLayout('list')" title="List">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+            <rect x="3" y="4" width="18" height="3" rx="1" />
+            <rect x="3" y="10.5" width="18" height="3" rx="1" />
+            <rect x="3" y="17" width="18" height="3" rx="1" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="content" oncontextmenu="bgCtx(event)">
+      <div id="grid" class="file-grid"></div>
+    </div>
+  </main>
+
+  <div id="marquee"></div>
+  <div id="ctx"></div>
+
+  <div id="modal">
+    <div class="modal-head">
+      <h3 class="modal-title" id="m-title"></h3>
+      <select class="fmt" id="m-fmt" onchange="renderPreview()">
+        <option value="auto">Auto</option>
+        <option value="text">Text</option>
+        <option value="image">Image</option>
+        <option value="json">JSON</option>
+      </select>
+      <button class="btn-icon" onclick="downloadPreview()" title="Download">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+      </button>
+      <button class="btn-icon" onclick="closeModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <img id="prev-img">
+      <textarea id="prev-text" spellcheck="false" oninput="saveEdited()"></textarea>
+      <div id="prev-none">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+        </svg>
+        <p id="prev-msg">No preview available</p>
+        <button onclick="downloadPreview()"
+          style="background:var(--blue);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600">Download</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    const IC = {
+      folder: `<svg viewBox="0 0 24 24" fill="rgba(59,130,246,.18)" stroke="#3b82f6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
+      star: `<svg width="12" height="12" viewBox="0 0 24 24" fill="#fbbf24" stroke="#fbbf24" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+      chev: `<svg style="opacity:.3" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>`,
+      file(ext) {
+        const map = {
+          img: { c: '#ec4899', e: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg', 'ico'] }, pdf: { c: '#ef4444', e: ['pdf'] },
+          js: { c: '#eab308', e: ['js', 'ts', 'jsx', 'tsx', 'mjs', 'cjs'] }, html: { c: '#e34c26', e: ['html', 'htm', 'xml'] },
+          css: { c: '#6366f1', e: ['css', 'scss', 'sass', 'less'] }, json: { c: '#f59e0b', e: ['json', 'yaml', 'toml', 'yml'] },
+          md: { c: '#8b5cf6', e: ['md', 'mdx', 'rst', 'txt'] }, media: { c: '#06b6d4', e: ['mp4', 'mp3', 'mov', 'wav', 'ogg', 'avi', 'mkv'] }
+        };
+        let c = '#64748b'; for (const [, { c: cl, e }] of Object.entries(map)) if (e.includes(ext)) { c = cl; break; }
+        return `<svg viewBox="0 0 24 24" fill="${c}18" stroke="${c}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><text x="12" y="17.5" text-anchor="middle" font-size="4.5" fill="${c}" stroke="none" font-family="monospace" font-weight="700">${ext.slice(0, 4).toUpperCase()}</text></svg>`;
+      }
+    };
+
+    let ST = { drive: 'local', path: ['root'], view: 'all', layout: 'grid', sel: new Set(), clip: null };
+    let fsL = {}, fsI = {}, prevItem = null;
+    const MAX_PREVIEW = 1.5 * 1024 * 1024, MAX_UPLOAD = 8 * 1024 * 1024;
+
+    // ── IDB ──
+    function getDB() { return new Promise((res, rej) => { const r = indexedDB.open('WebDeskFiles', 1); r.onupgradeneeded = e => e.target.result.createObjectStore('fs'); r.onsuccess = e => res(e.target.result); r.onerror = rej; }); }
+    async function loadIdb() { try { const db = await getDB(); const tx = db.transaction('fs', 'readonly'); const req = tx.objectStore('fs').get('data'); return new Promise(res => { req.onsuccess = () => res(req.result?.root ? req.result : mkFs()); req.onerror = () => res(mkFs()); }); } catch { return mkFs(); } }
+    async function saveIdb(d) { fsI = d; if (ST.drive === 'indexeddb') updateUsage(); try { const db = await getDB(); db.transaction('fs', 'readwrite').objectStore('fs').put(d, 'data'); } catch { } }
+
+    // ── LocalStorage ──
+    function loadLocal() {
+      let d = {}; try { d = JSON.parse(localStorage.getItem('cf4') || '{}'); } catch { }
+      if (!d.root) d = mkFs();
+      for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k !== 'cf4' && !k.startsWith('cf_')) { const id = 'lg_' + btoa(unescape(encodeURIComponent(k))).replace(/\W/g, ''); if (!d[id]) { d[id] = { id, name: k, type: 'file', isLegacy: true, parentId: 'root', size: (localStorage.getItem(k) || '').length, date: Date.now(), starred: false, trash: false }; d.root.children.push(id); } } }
+      return d;
+    }
+    function saveLocal(d) { fsL = d; if (ST.drive === 'local') updateUsage(); const c = {}; for (const k of Object.keys(d)) if (!d[k].isLegacy) c[k] = d[k]; localStorage.setItem('cf4', JSON.stringify(c)); }
+    function mkFs() { return { root: { id: 'root', name: 'Root', type: 'folder', children: [], starred: false, trash: false } }; }
+    function fs() { return ST.drive === 'local' ? fsL : fsI; }
+    function saveFs(d) { ST.drive === 'local' ? saveLocal(d) : saveIdb(d); }
+
+    // ── Init ──
+    async function init() {
+      fsL = loadLocal(); fsI = await loadIdb();
+      if (window.innerWidth <= 680) document.getElementById('menu-btn').style.display = 'flex';
+      window.addEventListener('click', e => { if (!e.target.closest('.new-wrap')) closeNewDrop(); if (!e.target.closest('#ctx')) hideCtx(); });
+      window.addEventListener('keydown', onKey);
+      initDriveDropTargets();
+      initMarquee();
+      render();
+    }
+
+    // ── New dropdown ── key fix: stopPropagation so window click doesn't immediately close it
+    function toggleNewDrop(e) { e.stopPropagation(); document.getElementById('new-drop').classList.toggle('open'); }
+    function closeNewDrop() { document.getElementById('new-drop').classList.remove('open'); }
+
+    // ── Cross-drive: sidebar drive buttons are drop targets ──
+    function initDriveDropTargets() {
+      document.querySelectorAll('[data-drive]').forEach(btn => {
+        btn.addEventListener('dragover', e => {
+          e.preventDefault();
+          // Only highlight if dragging something from the OTHER drive
+          if (ST.clip && ST.clip.src !== btn.dataset.drive) btn.classList.add('drive-drop');
+        });
+        btn.addEventListener('dragleave', () => btn.classList.remove('drive-drop'));
+        btn.addEventListener('drop', e => {
+          e.preventDefault(); btn.classList.remove('drive-drop');
+          const tgtDrive = btn.dataset.drive;
+          if (!ST.clip || ST.clip.src === tgtDrive) return;
+          crossDriveCopy(ST.clip.id, ST.clip.src, tgtDrive);
+        });
+      });
+    }
+
+    function crossDriveCopy(srcId, srcDrive, tgtDrive) {
+      const srcFs = srcDrive === 'local' ? fsL : fsI;
+      const tgtFs = tgtDrive === 'local' ? fsL : fsI;
+      const item = srcFs[srcId]; if (!item) return;
+      copyGraph(item, srcFs, tgtFs, 'root');
+      // Remove from source
+      const op = srcFs[item.parentId]; if (op) op.children = op.children.filter(id => id !== srcId);
+      deleteRecursive(srcFs, srcId);
+      srcDrive === 'local' ? saveLocal(srcFs) : saveIdb(srcFs);
+      tgtDrive === 'local' ? saveLocal(tgtFs) : saveIdb(tgtFs);
+      ST.clip = null; render(); toast(`Moved to ${tgtDrive === 'local' ? 'Local Storage' : 'IndexedDB'}`);
+    }
+
+    function deleteRecursive(f, id) { const it = f[id]; if (!it) return; if (it.type === 'folder') it.children?.forEach(cid => deleteRecursive(f, cid)); delete f[id]; }
+
+    // ── Keyboard ──
+    function onKey(e) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      const sel = [...ST.sel];
+      if (e.key === 'Delete' || e.key === 'Backspace') { if (sel.length) { e.preventDefault(); deleteItems(sel); } }
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'a') { e.preventDefault(); selectAll(); }
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'c') { if (sel.length === 1) { ST.clip = { action: 'copy', id: sel[0], src: ST.drive }; toast('Copied'); } }
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'x') { if (sel.length === 1) { ST.clip = { action: 'cut', id: sel[0], src: ST.drive }; toast('Cut'); } }
+      else if ((e.ctrlKey || e.metaKey) && e.key === 'v') { if (ST.clip) executePaste(); }
+      else if (e.key === 'Escape') { ST.sel.clear(); render(); }
+    }
+
+    // ── Sidebar ──
+    function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('overlay').classList.add('on'); }
+    function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('on'); }
+    function switchDrive(d) { ST.drive = d; ST.path = ['root']; ST.view = 'all'; ST.sel.clear(); document.querySelectorAll('[data-drive]').forEach(b => b.classList.toggle('active', b.dataset.drive === d)); document.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === 'all')); render(); }
+    function switchView(v) { ST.view = v; ST.path = ['root']; ST.sel.clear(); document.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === v)); render(); }
+
+    // ── Usage ──
+    function updateUsage() {
+      let u = 0; if (ST.drive === 'local') { for (let i = 0; i < localStorage.length; i++)u += (localStorage.getItem(localStorage.key(i)) || '').length; } else u = JSON.stringify(fs()).length;
+      const lim = ST.drive === 'local' ? 5242880 : 52428800, pct = Math.min(100, (u / lim) * 100);
+      document.getElementById('s-val').textContent = u < 1024 ? u + ' B' : (u / 1024).toFixed(1) + ' KB';
+      document.getElementById('s-fill').style.width = pct + '%';
+      document.getElementById('s-fill').style.background = pct > 80 ? 'var(--red)' : 'var(--blue)';
+    }
+
+    // ── Layout ──
+    function setLayout(l) { ST.layout = l; document.getElementById('lt-grid').classList.toggle('active', l === 'grid'); document.getElementById('lt-list').classList.toggle('active', l === 'list'); render(); }
+
+    // ── Render ──
+    function render() {
+      const f = fs(), cur = f[ST.path[ST.path.length - 1]];
+      const bc = document.getElementById('breadcrumbs');
+      if (ST.view !== 'all') { bc.innerHTML = `<span class="bc-item current" style="text-transform:capitalize">${ST.view} Files</span>`; }
+      else {
+        bc.innerHTML = ST.path.map((id, i) => { const nm = f[id]?.name || 'Root', isCur = i === ST.path.length - 1; return (i > 0 ? IC.chev : '') + `<span class="bc-item${isCur ? ' current' : ''}" data-idx="${i}">${nm}</span>`; }).join('');
+        bc.querySelectorAll('[data-idx]').forEach(el => { const idx = +el.dataset.idx; if (idx < ST.path.length - 1) el.addEventListener('click', () => { ST.path = ST.path.slice(0, idx + 1); ST.sel.clear(); render(); }); el.addEventListener('dragover', e => e.preventDefault()); el.addEventListener('drop', e => drop(e, ST.path[idx])); });
+      }
+      let items = [];
+      if (ST.view === 'all') items = (cur?.children || []).map(id => f[id]).filter(i => i && !i.trash);
+      else if (ST.view === 'starred') items = Object.values(f).filter(i => i.starred && !i.trash && i.id !== 'root');
+      else items = Object.values(f).filter(i => i.trash);
+      const q = document.getElementById('search').value.toLowerCase();
+      if (q) items = items.filter(i => i.name.toLowerCase().includes(q));
+      const sort = document.getElementById('sort-sel').value;
+      items.sort((a, b) => sort === 'type' ? a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'folder' ? -1 : 1 : sort === 'size' ? (b.size || 0) - (a.size || 0) : sort === 'date' ? (b.date || 0) - (a.date || 0) : a.type === 'folder' && b.type !== 'folder' ? -1 : a.type !== 'folder' && b.type === 'folder' ? 1 : a.name.localeCompare(b.name));
+      const grid = document.getElementById('grid');
+      grid.className = ST.layout === 'grid' ? 'file-grid' : 'file-list';
+      if (!items.length) { grid.innerHTML = `<div class="empty"><svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg><p>Nothing here yet.</p></div>`; updateUsage(); return; }
+      const isL = ST.layout === 'list';
+      grid.innerHTML = items.map(it => { const ext = (it.name.includes('.') ? it.name.split('.').pop() : '').toLowerCase(); const ico = it.type === 'folder' ? IC.folder : IC.file(ext); const meta = it.type === 'folder' ? `${it.children?.length || 0} items` : it.size >= 1024 ? (it.size / 1024).toFixed(1) + ' KB' : it.size + ' B'; const date = it.date ? new Date(it.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : ''; return `<div class="item${ST.sel.has(it.id) ? ' selected' : ''}" data-id="${it.id}" draggable="true"><div class="item-icon">${ico}</div><div class="item-name" title="${it.name}">${it.name}</div><div class="item-meta">${meta}</div>${isL ? `<div class="item-date">${date}</div>` : ''}${it.starred ? `<div class="star-dot">${IC.star}</div>` : ''}</div>`; }).join('');
+      grid.querySelectorAll('.item').forEach(el => { const id = el.dataset.id; el.addEventListener('click', e => { e.stopPropagation(); clickItem(e, id); }); el.addEventListener('dblclick', () => openItem(id)); el.addEventListener('contextmenu', e => itemCtx(e, id)); el.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', id); ST.clip = { action: 'move', id, src: ST.drive }; }); el.addEventListener('dragover', e => { e.preventDefault(); el.classList.add('drag-over'); }); el.addEventListener('dragleave', () => el.classList.remove('drag-over')); el.addEventListener('drop', e => drop(e, id)); });
+      updateUsage();
+    }
+
+    // ── Marquee (rubber-band) selection ──
+    function initMarquee() {
+      const content = document.getElementById('content'), mq = document.getElementById('marquee');
+      let on = false, sx = 0, sy = 0, preCtrl = false;
+      content.addEventListener('mousedown', e => {
+        if (e.target.closest('.item') || e.button !== 0) return;
+        on = true; sx = e.clientX; sy = e.clientY; preCtrl = e.ctrlKey || e.metaKey;
+        mq.style.cssText = `display:block;left:${sx}px;top:${sy}px;width:0;height:0`;
+        if (!preCtrl) { ST.sel.clear(); }
+        e.preventDefault(); // prevents text selection during drag
+      });
+      window.addEventListener('mousemove', e => {
+        if (!on) return;
+        const x1 = Math.min(sx, e.clientX), y1 = Math.min(sy, e.clientY), x2 = Math.max(sx, e.clientX), y2 = Math.max(sy, e.clientY);
+        mq.style.left = x1 + 'px'; mq.style.top = y1 + 'px'; mq.style.width = (x2 - x1) + 'px'; mq.style.height = (y2 - y1) + 'px';
+        // Live hit-test: add intersecting items, but with Ctrl held also allow deselect of items outside box
+        document.querySelectorAll('.item').forEach(el => {
+          const r = el.getBoundingClientRect(), hit = r.left < x2 && r.right > x1 && r.top < y2 && r.bottom > y1;
+          if (hit) ST.sel.add(el.dataset.id);
+          else if (!preCtrl) ST.sel.delete(el.dataset.id);
+          el.classList.toggle('selected', ST.sel.has(el.dataset.id));
+        });
+      });
+      window.addEventListener('mouseup', e => { if (!on) return; on = false; mq.style.display = 'none'; if (ST.sel.size) render(); });
+    }
+
+    function clickItem(e, id) {
+      if (e.ctrlKey || e.metaKey) { ST.sel.has(id) ? ST.sel.delete(id) : ST.sel.add(id); }
+      else if (e.shiftKey) { const items = getVisible(), ids = items.map(i => i.id), last = [...ST.sel].pop(), a = ids.indexOf(last), b = ids.indexOf(id); if (a >= 0) ids.slice(Math.min(a, b), Math.max(a, b) + 1).forEach(i => ST.sel.add(i)); else ST.sel.add(id); }
+      else { ST.sel.clear(); ST.sel.add(id); }
+      render();
+    }
+    function selectAll() { getVisible().forEach(i => ST.sel.add(i.id)); render(); }
+    function getVisible() { const f = fs(), cur = f[ST.path[ST.path.length - 1]]; if (ST.view === 'all') return (cur?.children || []).map(id => f[id]).filter(i => i && !i.trash); if (ST.view === 'starred') return Object.values(f).filter(i => i.starred && !i.trash && i.id !== 'root'); return Object.values(f).filter(i => i.trash); }
+
+    // ── File Ops ──
+    function createFolder() { closeNewDrop(); const name = prompt('Folder name:', 'New Folder'); if (!name) return; const f = fs(), pid = ST.path[ST.path.length - 1], id = 'f_' + Date.now(); f[id] = { id, name, type: 'folder', children: [], parentId: pid, starred: false, trash: false, date: Date.now() }; f[pid].children.push(id); saveFs(f); render(); toast('Folder created'); }
+    function createTextFile() { closeNewDrop(); const name = prompt('File name:', 'untitled.txt'); if (!name) return; const f = fs(), pid = ST.path[ST.path.length - 1], id = 'f_' + Date.now(); f[id] = { id, name, type: 'file', content: '', size: 0, parentId: pid, starred: false, trash: false, date: Date.now() }; f[pid].children.push(id); saveFs(f); render(); toast('File created'); setTimeout(() => openItem(id), 80); }
+
+    function handleUpload(e) {
+      const files = [...e.target.files]; if (!files.length) return;
+      const big = files.filter(f => f.size > MAX_UPLOAD); if (big.length) toast(`Skipped ${big.length} file(s) over 8 MB`);
+      const ok = files.filter(f => f.size <= MAX_UPLOAD); if (!ok.length) { e.target.value = ''; return; }
+      const f = fs(), pid = ST.path[ST.path.length - 1]; let done = 0;
+      ok.forEach(file => { const reader = new FileReader(); reader.onload = ev => { const id = 'f_' + Math.random().toString(36).slice(2, 11); f[id] = { id, name: file.name, type: 'file', content: ev.target.result, size: file.size, parentId: pid, starred: false, trash: false, date: Date.now() }; f[pid].children.push(id); saveFs(f); if (++done === ok.length) { render(); toast(`${done} file${done > 1 ? 's' : ''} uploaded`); } }; reader.readAsDataURL(file); });
+      e.target.value = '';
+    }
+
+    function openItem(id) { const f = fs(), it = f[id]; if (!it) return; if (it.type === 'folder') { ST.path.push(id); ST.sel.clear(); render(); } else showModal(it); }
+    function deleteItems(ids) { const f = fs(); let p = 0, t = 0; ids.forEach(id => { const it = f[id]; if (!it || id === 'root') return; if (it.trash || ST.view === 'trash') { if (it.parentId && f[it.parentId]) f[it.parentId].children = f[it.parentId].children.filter(c => c !== id); if (it.isLegacy) localStorage.removeItem(it.name); delete f[id]; p++; } else { it.trash = true; t++; } }); ST.sel.clear(); saveFs(f); render(); if (p) toast(`Deleted ${p} item${p > 1 ? 's' : ''}`); else toast(`${t} item${t > 1 ? 's' : ''} moved to Trash`); }
+    function restoreItems(ids) { const f = fs(); ids.forEach(id => { if (f[id]) f[id].trash = false; }); ST.sel.clear(); saveFs(f); render(); toast('Restored'); }
+    function renameItem(id) { const f = fs(), it = f[id]; if (!it) return; const name = prompt('Rename:', it.name); if (!name || name === it.name) return; if (it.isLegacy) { const v = localStorage.getItem(it.name); localStorage.removeItem(it.name); localStorage.setItem(name, v); const nid = 'lg_' + btoa(name).replace(/\W/g, ''); f[nid] = { ...it, id: nid, name }; f[it.parentId].children = f[it.parentId].children.map(c => c === id ? nid : c); delete f[id]; } else it.name = name; saveFs(f); render(); toast('Renamed'); }
+    function toggleStar(id) { const f = fs(); if (f[id]) f[id].starred = !f[id].starred; saveFs(f); render(); }
+    function downloadFile(id) { const f = fs(), it = f[id]; if (!it || it.type !== 'file') return; let c = it.content; if (it.isLegacy) c = 'data:text/plain;charset=utf-8,' + encodeURIComponent(localStorage.getItem(it.name) || ''); const a = document.createElement('a'); a.href = c; a.download = it.name; document.body.appendChild(a); a.click(); a.remove(); }
+
+    // ── Drag & Drop (same-drive, folder→folder) ──
+    function drop(e, targetId) {
+      e.preventDefault(); e.stopPropagation();
+      document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+      if (!ST.clip) return;
+      // Cross-drive drops are handled by the sidebar buttons; ignore here
+      if (ST.clip.src !== ST.drive) return;
+      const srcId = ST.clip.id; if (srcId === targetId) return;
+      const f = fs(); if (targetId === 'bg') targetId = ST.path[ST.path.length - 1];
+      const target = f[targetId]; if (!target || target.type !== 'folder') return;
+      const item = f[srcId]; if (!item) return;
+      // Prevent dropping folder into its own descendant
+      let c = target; while (c.parentId) { if (c.parentId === srcId) return; c = f[c.parentId] || {}; }
+      const op = f[item.parentId]; if (op) op.children = op.children.filter(id => id !== srcId);
+      item.parentId = targetId; if (!target.children) target.children = []; if (!target.children.includes(srcId)) target.children.push(srcId);
+      ST.clip = null; saveFs(f); render(); toast('Moved');
+    }
+
+    function copyGraph(item, src, tgt, tgtPid) {
+      const nid = item.type + '_' + Math.random().toString(36).slice(2, 11);
+      const ni = { ...item, id: nid, parentId: tgtPid, isLegacy: false, children: [] }; tgt[nid] = ni;
+      if (!tgt[tgtPid].children) tgt[tgtPid].children = []; tgt[tgtPid].children.push(nid);
+      if (item.type === 'folder' && item.children) for (const cid of item.children) if (src[cid]) copyGraph(src[cid], src, tgt, nid);
+      else if (item.isLegacy) ni.content = localStorage.getItem(item.name) || '';
+    }
+
+    function executePaste() {
+      if (!ST.clip) return;
+      const tgt = fs(), srcFs = ST.clip.src === 'local' ? fsL : fsI, item = srcFs[ST.clip.id]; if (!item) return;
+      const pid = ST.path[ST.path.length - 1];
+      if (ST.clip.action === 'cut' && ST.clip.src === ST.drive) { const op = tgt[item.parentId]; if (op) op.children = op.children.filter(id => id !== item.id); item.parentId = pid; tgt[pid].children.push(item.id); ST.clip = null; saveFs(tgt); render(); toast('Moved'); }
+      else { copyGraph(item, srcFs, tgt, pid); if (ST.clip.action === 'cut') { const op = srcFs[item.parentId]; if (op) op.children = op.children.filter(id => id !== item.id); deleteRecursive(srcFs, item.id); ST.clip.src === 'local' ? saveLocal(srcFs) : saveIdb(srcFs); ST.clip = null; } saveFs(tgt); render(); toast('Pasted'); }
+    }
+
+    // ── Context Menus ──
+    function hideCtx() { document.getElementById('ctx').style.display = 'none'; }
+    function showCtx(e, html) {
+      e.preventDefault(); e.stopPropagation();
+      const m = document.getElementById('ctx'); m.innerHTML = html; m.style.display = 'block'; m.style.left = e.clientX + 'px'; m.style.top = e.clientY + 'px';
+      requestAnimationFrame(() => { const r = m.getBoundingClientRect(); if (e.clientX + r.width > innerWidth) m.style.left = (innerWidth - r.width - 6) + 'px'; if (e.clientY + r.height > innerHeight) m.style.top = (innerHeight - r.height - 6) + 'px'; });
+    }
+    const svg = (d) => `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${d}</svg>`;
+    const CI = {
+      eye: svg('<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>'),
+      edit: svg('<path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>'),
+      copy: svg('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'),
+      cut: svg('<circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/>'),
+      dl: svg('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'),
+      trash: svg('<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'),
+      restore: svg('<polyline points="3 9 3 3 9 3"/><path d="M3 3l5 5"/><path d="M21 12.01A9 9 0 1 1 12 3c2.4 0 4.6.9 6.2 2.5L21 9"/>'),
+      paste: svg('<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/>'),
+      check: svg('<polyline points="20 6 9 17 4 12"/>'),
+      newf: svg('<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>'),
+      up: svg('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>'),
+    };
+
+    function itemCtx(e, id) {
+      const f = fs(), it = f[id]; ST.sel.clear(); ST.sel.add(id); render(); const isTr = ST.view === 'trash';
+      const starIco = `<svg width="14" height="14" viewBox="0 0 24 24" fill="${it.starred ? '#fbbf24' : 'none'}" stroke="${it.starred ? '#fbbf24' : 'currentColor'}" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+      showCtx(e, `
+    <button class="ctx-item" onclick="openItem('${id}');hideCtx()">${CI.eye} Open</button>
+    <button class="ctx-item" onclick="renameItem('${id}');hideCtx()">${CI.edit} Rename</button>
+    <div class="ctx-div"></div>
+    <button class="ctx-item" onclick="ST.clip={action:'copy',id:'${id}',src:ST.drive};hideCtx();toast('Copied')">${CI.copy} Copy</button>
+    <button class="ctx-item" onclick="ST.clip={action:'cut',id:'${id}',src:ST.drive};hideCtx();toast('Cut')">${CI.cut} Cut</button>
+    ${it.type === 'file' ? `<button class="ctx-item" onclick="downloadFile('${id}');hideCtx()">${CI.dl} Download</button>` : ''}
+    <div class="ctx-div"></div>
+    <button class="ctx-item" onclick="toggleStar('${id}');hideCtx()">${starIco} ${it.starred ? 'Unstar' : 'Star'}</button>
+    ${isTr ? `<button class="ctx-item success" onclick="restoreItems(['${id}']);hideCtx()">${CI.restore} Restore</button>` : ''}
+    <button class="ctx-item danger" onclick="deleteItems(['${id}']);hideCtx()">${CI.trash} ${isTr ? 'Delete Forever' : 'Delete'}</button>
+  `);
+    }
+    function bgCtx(e) {
+      if (e.target.closest('.item')) return;
+      showCtx(e, `
+    <button class="ctx-item" onclick="createFolder()">${CI.newf} New Folder</button>
+    <button class="ctx-item" onclick="createTextFile()">${svg('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>')} New Text File</button>
+    <button class="ctx-item" onclick="document.getElementById('fu').click();hideCtx()">${CI.up} Upload</button>
+    ${ST.clip && ST.view === 'all' ? `<div class="ctx-div"></div><button class="ctx-item" onclick="executePaste();hideCtx()">${CI.paste} Paste</button>` : ''}
+    <div class="ctx-div"></div>
+    <button class="ctx-item" onclick="selectAll();hideCtx()">${CI.check} Select All</button>
+  `);
+    }
+    function trashCtx(e) { e.preventDefault(); e.stopPropagation(); showCtx(e, `<button class="ctx-item danger" onclick="emptyTrash();hideCtx()">${CI.trash} Empty Trash</button>`); }
+    function emptyTrash() { if (!confirm('Permanently delete everything in Trash?')) return; const f = fs(); Object.keys(f).forEach(k => { if (f[k].trash && k !== 'root') delete f[k]; }); saveFs(f); render(); toast('Trash emptied'); }
+
+    // ── Preview ──
+    function showModal(it) { prevItem = it; document.getElementById('m-title').textContent = it.name; document.getElementById('modal').style.display = 'flex'; document.getElementById('m-fmt').value = 'auto'; renderPreview(); }
+    function closeModal() { document.getElementById('modal').style.display = 'none'; prevItem = null; }
+    function renderPreview() {
+      if (!prevItem) return;
+      const fmt = document.getElementById('m-fmt').value, img = document.getElementById('prev-img'), txt = document.getElementById('prev-text'), none = document.getElementById('prev-none');
+      img.style.display = 'none'; txt.style.display = 'none'; none.style.display = 'none';
+      let content = prevItem.content; if (prevItem.isLegacy) content = localStorage.getItem(prevItem.name) || '';
+      // Guard against huge files freezing the browser
+      if ((content || '').length > MAX_PREVIEW && fmt !== 'image') {
+        document.getElementById('prev-msg').textContent = `File too large to preview (${((content || '').length / 1024 / 1024).toFixed(1)} MB) — download to view.`;
+        none.style.display = 'flex'; return;
+      }
+      document.getElementById('prev-msg').textContent = 'No preview available';
+      const isImg = content && content.startsWith('data:image');
+      if (fmt === 'image' || (fmt === 'auto' && isImg)) { img.src = content; img.style.display = 'block'; }
+      else if (fmt === 'text' || fmt === 'json' || (fmt === 'auto' && !isImg)) {
+        let v = content || ''; if (content && content.startsWith('data:') && !isImg) { try { v = atob(content.split(',')[1]); } catch { v = content; } }
+        if (fmt === 'json') try { v = JSON.stringify(JSON.parse(v), null, 2); } catch { }
+        txt.value = v; txt.style.display = 'block';
+      } else none.style.display = 'flex';
+    }
+    function saveEdited() { if (!prevItem) return; const v = document.getElementById('prev-text').value; if (prevItem.isLegacy) { localStorage.setItem(prevItem.name, v); return; } const f = fs(); f[prevItem.id].content = v; f[prevItem.id].size = v.length; saveFs(f); render(); }
+    function downloadPreview() { if (prevItem) downloadFile(prevItem.id); }
+
+    // ── Toast ──
+    let _tt;
+    function toast(msg) { const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); clearTimeout(_tt); _tt = setTimeout(() => el.classList.remove('show'), 2200); }
+
+    window.onload = init;
+  </script>
+</body>
+
+</html>
