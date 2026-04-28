@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>WebDesk Mobile v1</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div id="phone-shell" class="phone-shell wallpaper-default">
+    <div id="status-bar" class="status-bar" role="button" aria-label="Open control center">
+      <div class="status-left">
+        <span id="status-time">10:10</span>
+      </div>
+      <div class="status-right">
+        <span>📶</span>
+        <span>📡</span>
+        <span id="status-battery">100%</span>
+      </div>
+    </div>
+
+    <main id="home" class="home">
+      <section id="homescreen-pages" class="homescreen-pages" aria-label="Homescreen pages"></section>
+      <div class="page-dots" id="page-dots"></div>
+    </main>
+
+    <section id="app-layer" class="app-layer hidden" aria-live="polite">
+      <div class="window-controls">
+        <button data-window-action="minimize" aria-label="Minimize app">▁</button>
+        <button data-window-action="maximize" aria-label="Toggle fullscreen app">▢</button>
+        <button data-window-action="close" aria-label="Close app">✕</button>
+      </div>
+      <div id="app-host" class="app-host"></div>
+    </section>
+
+    <section id="recents" class="recents hidden" aria-label="Recent apps">
+      <header><h2>Recent apps</h2></header>
+      <div id="recents-list" class="recents-list"></div>
+    </section>
+
+    <section id="control-center" class="control-center hidden" aria-label="Control center">
+      <header>
+        <strong>Control center</strong>
+        <span id="cc-date"></span>
+      </header>
+      <div class="qs-grid">
+        <button class="qs-tile" id="tile-wifi">Wi‑Fi</button>
+        <button class="qs-tile" id="tile-bt">Bluetooth</button>
+        <button class="qs-tile" id="tile-rotation">Rotation</button>
+        <button class="qs-tile" id="tile-fullscreen">Fullscreen</button>
+      </div>
+      <label class="slider-label">Brightness
+        <input id="brightness-slider" type="range" min="35" max="110" value="100" />
+      </label>
+      <label class="slider-label">Wallpaper
+        <select id="wallpaper-select">
+          <option value="default">Default</option>
+          <option value="water">Water</option>
+          <option value="foreshadowing">Foreshadowing</option>
+        </select>
+      </label>
+    </section>
+
+    <nav class="system-nav" aria-label="System navigation">
+      <button id="nav-back" aria-label="Back">◁</button>
+      <button id="nav-home" aria-label="Home">◯</button>
+      <button id="nav-recents" aria-label="Recents">▢</button>
+    </nav>
+  </div>
+
+  <template id="home-page-template">
+    <section class="home-page"></section>
+  </template>
+
+  <template id="search-widget-template">
+    <article class="search-widget draggable" draggable="true" data-item-type="search">
+      <input type="search" placeholder="Search apps" aria-label="Search apps" />
+    </article>
+  </template>
+
+  <template id="app-icon-template">
+    <button class="app-icon draggable" draggable="true" data-item-type="app">
+      <span class="app-glyph">◼</span>
+      <span class="app-name"></span>
+    </button>
+  </template>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
