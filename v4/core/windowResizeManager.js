@@ -1,3 +1,9 @@
+function pointerClient(e) {
+    if (e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    if (e.changedTouches && e.changedTouches[0]) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+    return { x: e.clientX, y: e.clientY };
+}
+
 class WindowResizeManager {
     constructor(windowManager) {
         this.windowManager = windowManager;
@@ -32,10 +38,15 @@ class WindowResizeManager {
 
     setupResizeHandlers(windowEl) {
         windowEl.addEventListener('mousedown', this.boundHandleMouseDown);
+        windowEl.addEventListener('touchstart', this.boundHandleMouseDown, { passive: false });
         // Track globally so we don't lose the edge
         document.addEventListener('mousemove', this.boundHandleMouseMove);
         document.addEventListener('mousemove', this.boundHandleDragging);
         document.addEventListener('mouseup', this.boundHandleMouseUp);
+        document.addEventListener('touchmove', this.boundHandleMouseMove, { passive: true });
+        document.addEventListener('touchmove', this.boundHandleDragging, { passive: false });
+        document.addEventListener('touchend', this.boundHandleMouseUp);
+        document.addEventListener('touchcancel', this.boundHandleMouseUp);
     }
 
     handleMouseMove(e) {
@@ -52,17 +63,20 @@ class WindowResizeManager {
 
     handleMouseDown(e) {
         if (e.target.closest('.window-controls') || e.target.closest('.title-bar')) return;
+        if (e.touches && e.touches.length > 1) return;
 
         const edge = this.getResizeEdge(e);
         if (!edge) return;
 
-        const windowEl = e.target.closest('.app-window');
+        const windowEl = (e.target.closest && e.target.closest('.app-window'))
+            || document.elementFromPoint(pointerClient(e).x, pointerClient(e).y)?.closest('.app-window');
         if (!windowEl) return;
 
         this.resizingWindow = windowEl;
         this.resizeEdge = edge;
-        this.startX = e.clientX;
-        this.startY = e.clientY;
+        const pt = pointerClient(e);
+        this.startX = pt.x;
+        this.startY = pt.y;
         this.startWidth = windowEl.offsetWidth;
         this.startHeight = windowEl.offsetHeight;
         this.startLeft = windowEl.offsetLeft;
@@ -93,8 +107,10 @@ class WindowResizeManager {
     handleDragging(e) {
         if (!this.resizingWindow || !this.resizeEdge) return;
 
-        const deltaX = e.clientX - this.startX;
-        const deltaY = e.clientY - this.startY;
+        const pt = pointerClient(e);
+        const deltaX = pt.x - this.startX;
+        const deltaY = pt.y - this.startY;
+        if (e.cancelable && e.touches) e.preventDefault();
 
         let newWidth = this.startWidth;
         let newHeight = this.startHeight;
@@ -122,18 +138,19 @@ class WindowResizeManager {
     }
 
     getResizeEdge(e) {
-        // We use elementFromPoint if the target is the overlay during a drag,
-        // but for initial hover, we check the target directly.
-        const windowEl = e.target.closest('.app-window');
+        const pt = pointerClient(e);
+        const target = (e.target && e.target.closest) ? e.target : document.elementFromPoint(pt.x, pt.y);
+        const windowEl = target && target.closest ? target.closest('.app-window') : null;
         if (!windowEl) return null;
 
         const rect = windowEl.getBoundingClientRect();
-        const edgeSize = 10; 
+        // Larger hit target on coarse pointers (touch)
+        const edgeSize = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ? 18 : 10;
 
-        const left = e.clientX - rect.left < edgeSize;
-        const right = rect.right - e.clientX < edgeSize;
-        const top = e.clientY - rect.top < edgeSize;
-        const bottom = rect.bottom - e.clientY < edgeSize;
+        const left = pt.x - rect.left < edgeSize;
+        const right = rect.right - pt.x < edgeSize;
+        const top = pt.y - rect.top < edgeSize;
+        const bottom = rect.bottom - pt.y < edgeSize;
 
         if (!left && !right && !top && !bottom) return null;
 

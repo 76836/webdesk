@@ -1,5 +1,16 @@
 import WindowResizeManager from './windowResizeManager.js';
 
+/** Normalize mouse/touch to client coordinates (touch acts like click-drag). */
+function pointerClient(e) {
+    if (e.touches && e.touches[0]) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    if (e.changedTouches && e.changedTouches[0]) {
+        return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+    }
+    return { x: e.clientX, y: e.clientY };
+}
+
 class WindowManager {
     constructor() {
         this.openWindows = new Map();
@@ -153,44 +164,59 @@ class WindowManager {
             }
         };
 
-        el.onmousedown = () => {
+        const focusWin = () => {
             if (win.state === 'open') el.style.zIndex = ++this.nextZIndex;
         };
+        el.addEventListener('mousedown', focusWin);
+        el.addEventListener('touchstart', focusWin, { passive: true });
 
         const titleBar = el.querySelector('.title-bar');
-        titleBar.onmousedown = (e) => {
+        const beginDrag = (e) => {
             if (e.target.closest('.window-controls')) return;
-            
+            // Ignore multi-touch
+            if (e.touches && e.touches.length > 1) return;
+
             if (win.isMaximized) this.toggleMaximize(id);
 
-            const startX = e.clientX - el.offsetLeft;
-            const startY = e.clientY - el.offsetTop;
-            
+            const pt = pointerClient(e);
+            const startX = pt.x - el.offsetLeft;
+            const startY = pt.y - el.offsetTop;
+
             this.resizeManager.overlay.style.display = 'block';
             this.resizeManager.overlay.style.pointerEvents = 'auto';
             this.resizeManager.overlay.style.cursor = 'move';
 
-            const onMouseMove = (moveEvent) => {
-                const x = moveEvent.clientX;
-                const y = moveEvent.clientY;
-                el.style.left = (x - startX) + 'px';
-                el.style.top = (y - startY) + 'px';
-                this.updateSnapPreview(x, y);
+            const onMove = (moveEvent) => {
+                const p = pointerClient(moveEvent);
+                el.style.left = (p.x - startX) + 'px';
+                el.style.top = (p.y - startY) + 'px';
+                this.updateSnapPreview(p.x, p.y);
+                if (moveEvent.cancelable) moveEvent.preventDefault();
             };
 
-            const onMouseUp = (upEvent) => {
-                document.removeEventListener('mousemove', onMouseMove);
-                document.removeEventListener('mouseup', onMouseUp);
+            const onUp = (upEvent) => {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+                document.removeEventListener('touchmove', onMove);
+                document.removeEventListener('touchend', onUp);
+                document.removeEventListener('touchcancel', onUp);
                 this.resizeManager.overlay.style.display = 'none';
                 this.resizeManager.overlay.style.pointerEvents = 'none';
                 this.snapPreview.style.display = 'none';
-                this.checkSnap(id, upEvent.clientX, upEvent.clientY);
+                const p = pointerClient(upEvent);
+                this.checkSnap(id, p.x, p.y);
             };
 
-            document.addEventListener('mousemove', onMouseMove);
-            document.addEventListener('mouseup', onMouseUp);
-            e.preventDefault();
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+            document.addEventListener('touchmove', onMove, { passive: false });
+            document.addEventListener('touchend', onUp);
+            document.addEventListener('touchcancel', onUp);
+            if (e.cancelable) e.preventDefault();
         };
+
+        titleBar.addEventListener('mousedown', beginDrag);
+        titleBar.addEventListener('touchstart', beginDrag, { passive: false });
     }
 
     updateSnapPreview(x, y) {
