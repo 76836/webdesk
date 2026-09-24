@@ -10,21 +10,15 @@
 <body>
   <div id="phone-shell" class="phone-shell wallpaper-default">
     <div id="status-bar" class="status-bar" role="button" aria-label="Open control center">
-      <div class="status-left">
-        <span id="status-time">--:--</span>
-      </div>
+      <div class="status-left"><span id="status-time">10:10</span></div>
       <div class="status-right">
-        <span aria-hidden="true">📶</span>
-        <span aria-hidden="true">📡</span>
+        <span class="sig" aria-hidden="true"></span>
+        <span class="wifi" aria-hidden="true"></span>
         <span id="status-battery">100%</span>
       </div>
     </div>
 
     <main id="home" class="home">
-      <div class="home-toolbar">
-        <button type="button" id="btn-edit-home" class="home-tool-btn" aria-pressed="false">Edit home</button>
-        <button type="button" id="btn-add-app" class="home-tool-btn secondary hidden">Add app</button>
-      </div>
       <section id="homescreen-pages" class="homescreen-pages" aria-label="Homescreen pages"></section>
       <div class="page-dots" id="page-dots"></div>
       <div id="dock" class="dock" aria-label="Dock"></div>
@@ -32,30 +26,26 @@
 
     <section id="app-layer" class="app-layer hidden" aria-live="polite">
       <div class="window-controls">
-        <button type="button" data-window-action="minimize" aria-label="Minimize app">▁</button>
-        <button type="button" data-window-action="maximize" aria-label="Toggle fullscreen app">▢</button>
-        <button type="button" data-window-action="close" aria-label="Close app">✕</button>
+        <button type="button" data-window-action="minimize" aria-label="Minimize">▁</button>
+        <button type="button" data-window-action="maximize" aria-label="Fullscreen">▢</button>
+        <button type="button" data-window-action="close" aria-label="Close">✕</button>
       </div>
       <div id="app-host" class="app-host"></div>
     </section>
 
-    <!-- Android-style recent apps: horizontal cards -->
     <section id="recents" class="recents hidden" aria-label="Recent apps">
-      <header class="recents-header">
-        <h2>Recents</h2>
-        <button type="button" id="btn-clear-recents" class="text-btn">Clear all</button>
-      </header>
       <div id="recents-list" class="recents-list"></div>
-      <p class="recents-hint">Swipe cards sideways · tap to resume · × to close</p>
+      <button type="button" id="btn-clear-recents" class="clear-all">Clear all</button>
     </section>
 
-    <!-- App picker for home customization -->
-    <section id="app-picker" class="app-picker hidden" aria-label="Add apps to home">
-      <header>
-        <strong>Add to home</strong>
-        <button type="button" id="btn-close-picker" class="text-btn">Done</button>
+    <section id="app-picker" class="sheet hidden" aria-label="All apps">
+      <div class="sheet-handle"></div>
+      <header class="sheet-header">
+        <strong>All apps</strong>
+        <button type="button" id="btn-close-picker" class="ghost">Close</button>
       </header>
-      <div id="app-picker-list" class="app-picker-list"></div>
+      <p class="sheet-hint">Tap to open · long-press home icons to rearrange</p>
+      <div id="app-picker-list" class="all-apps-grid"></div>
     </section>
 
     <section id="control-center" class="control-center hidden" aria-label="Control center">
@@ -82,28 +72,28 @@
     </section>
 
     <nav class="system-nav" aria-label="System navigation">
-      <button type="button" id="nav-back" aria-label="Back">◁</button>
-      <button type="button" id="nav-home" aria-label="Home">○</button>
-      <button type="button" id="nav-recents" aria-label="Recents">▢</button>
+      <button type="button" id="nav-back" aria-label="Back"><span class="nav-icon">◁</span></button>
+      <button type="button" id="nav-home" aria-label="Home"><span class="nav-icon nav-home-pill"></span></button>
+      <button type="button" id="nav-recents" aria-label="Recents"><span class="nav-icon nav-recents-sq"></span></button>
     </nav>
   </div>
 
   <template id="home-page-template">
     <div class="home-page" role="list"></div>
   </template>
-
   <template id="search-widget-template">
     <div class="search-widget" draggable="true" data-item-type="widget">
-      <input type="search" placeholder="Search apps" aria-label="Search apps" />
+      <input type="search" placeholder="Search" aria-label="Search apps" />
     </div>
   </template>
-
   <template id="app-icon-template">
     <button type="button" class="app-icon" draggable="true" data-item-type="app" role="listitem">
-      <span class="app-glyph" aria-hidden="true"></span>
-      <img class="app-img hidden" alt="" />
+      <span class="icon-wrap">
+        <span class="app-glyph" aria-hidden="true"></span>
+        <img class="app-img hidden" alt="" />
+        <span class="badge-remove hidden" aria-label="Remove">−</span>
+      </span>
       <span class="app-name"></span>
-      <span class="remove-from-home hidden" title="Remove from home">−</span>
     </button>
   </template>
 
