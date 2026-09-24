@@ -163,7 +163,7 @@
             { title: "Image Studio", path: "pollinations_image_client.html" },
             { title: "Batteries", path: "batteries.html" },
             { title: "llamafile builder", path: "llamafile-builder.html" },
-            { title: "Firefox", path: "https://76836.github.io/firefox-wasm/?mode=polished", iconUrl: "https://www.mozilla.org/media/img/favicons/firefox/browser/favicon-196x196.ce953d15ea50.png" },
+            { title: "Firefox", path: "https://76836.github.io/firefox-wasm/?mode=polished", iconUrl: "https://76836.github.io/firefox-wasm/assets/firefox-icon.svg", openMode: "popup" },
             { title: "Games Launcher", path: "launcher", iconUrl: "https://76836.github.io/favicon.ico" }
         ];
 
@@ -212,7 +212,7 @@
         if (!installedIds.includes(id)) {
             markContainer.appendChild(createAppRow({
                 id: id,
-                config: { title: item.title, url: fullUrl, iconUrl: resolvedIcon }
+                config: { title: item.title, url: fullUrl, iconUrl: resolvedIcon, openMode: item.openMode || null }
             }, false));
         }
     });
