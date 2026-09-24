@@ -99,27 +99,6 @@ class WindowManager {
             return;
         }
 
-        // Apps that need SharedArrayBuffer (e.g. Firefox WASM) cannot run in an
-        // iframe unless the whole desktop is crossOriginIsolated. Open top-level.
-        const needsTopLevel =
-            config.openMode === 'popup' ||
-            (typeof config.url === 'string' && /firefox-wasm/i.test(config.url));
-        if (needsTopLevel && config.url) {
-            const w = Math.min(1280, Math.round(screen.availWidth * 0.9));
-            const h = Math.min(900, Math.round(screen.availHeight * 0.9));
-            const left = Math.max(0, Math.round((screen.availWidth - w) / 2));
-            const top = Math.max(0, Math.round((screen.availHeight - h) / 2));
-            const features = `popup=yes,width=${w},height=${h},left=${left},top=${top}`;
-            const win = window.open(config.url, 'webdesk_' + id, features);
-            if (!win) {
-                // Popup blocked — fall through to iframe (will show isolation error)
-                console.warn('[WebDesk] popup blocked for', id);
-            } else {
-                this.addTaskbarIcon(id, config);
-                return;
-            }
-        }
-
         const taskbarIcon = this.addTaskbarIcon(id, config);
 
         const windowEl = document.createElement('div');
