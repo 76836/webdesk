@@ -162,7 +162,9 @@
             { title: "Simple AI", path: "FREE_AI.html" },
             { title: "Image Studio", path: "pollinations_image_client.html" },
             { title: "Batteries", path: "batteries.html" },
-            { title: "llamafile builder", path: "llamafile-builder.html" }
+            { title: "llamafile builder", path: "llamafile-builder.html" },
+            { title: "Firefox WASM", path: "https://developer.puter.com/labs/firefox-wasm/", iconUrl: "https://www.mozilla.org/media/img/favicons/firefox/browser/favicon-196x196.ce953d15ea50.png" },
+            { title: "Games Launcher", path: "launcher", iconUrl: "https://76836.github.io/favicon.ico" }
         ];
 
         window.onload = loadApps;
@@ -201,7 +203,7 @@
     const markContainer = document.getElementById('marketplaceApps');
     markContainer.innerHTML = '';
     catalog.forEach(item => {
-        const fullUrl = BASE_URL + item.path;
+        const fullUrl = /^https?:\/\//i.test(item.path) ? item.path : (BASE_URL + item.path);
         const id = 'webapp-' + item.title.toLowerCase().replace(/[^a-z0-9]/g, '-');
         
         // Use custom iconUrl if provided, otherwise fallback to default path
