@@ -60,7 +60,7 @@
                 <h2>System</h2>
                 <div class="settings-card">
                     <h3 style="margin:0 0 8px;font-size:15px;">Cross-origin isolation</h3>
-                    <p class="muted">Enables SharedArrayBuffer (needed for apps like Firefox WASM). Uses a service worker to add COOP/COEP headers. May affect some third-party embeds.</p>
+                    <p class="muted">Enables SharedArrayBuffer for WebDesk and same-origin apps (Firefox WASM, etc.). Registers the site-root worker /enable-threads.js with scope / so isolation is not limited to /webdesk/.</p>
                     <div class="upload-row" style="margin-top:12px;align-items:center;">
                         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
                             <input type="checkbox" id="coi-toggle" />

@@ -1,19 +1,21 @@
 /**
  * WebDesk COI bootstrap
  *
- * Firefox shows:
- *   "This page has not been loaded because it looks like the security
- *    configuration doesn't match the previous page."
- * when COOP differs between history entries (e.g. location.reload() after SW
- * starts injecting COOP). Fix: always activate with location.replace() and a
- * fresh URL so it is not a same-history COOP mismatch.
+ * Registers the ROOT Pages worker https://76836.github.io/enable-threads.js
+ * with scope "/" so isolation covers WebDesk AND same-origin apps
+ * (e.g. /firefox-wasm/) in iframes — not only /webdesk/v4/.
+ *
+ * A SW file under /webdesk/v4/ cannot control the whole site (browser max scope
+ * is the script's directory). Root enable-threads.js can.
  */
 (function () {
   const KEY = "WebDesk_coi_enabled";
   const RELOAD_KEY = "WebDesk_coi_reloads";
   const FAIL_KEY = "WebDesk_coi_failed";
   const MAX = 2;
-  const SW_PATH = "./coi-sw.js";
+
+  // Absolute URL on the GitHub Pages origin (scope max = /)
+  const ROOT_SW = new URL("/enable-threads.js", location.origin).href;
 
   function wantCoi() {
     return localStorage.getItem(KEY) === "1";
@@ -27,13 +29,11 @@
     sessionStorage.setItem(RELOAD_KEY, String(n));
   }
 
-  /** Navigate without keeping the previous COOP in session history (Firefox). */
+  /** Firefox: avoid reload() when COOP flips on the same history entry. */
   function hardNavigate() {
     const u = new URL(location.href);
-    // Drop prior coi cache-busters, add a new one
     u.searchParams.delete("_coi");
     u.searchParams.set("_coi", String(Date.now()));
-    // replace() avoids "security configuration doesn't match the previous page"
     location.replace(u.pathname + u.search + u.hash);
   }
 
@@ -42,13 +42,27 @@
     return navigator.serviceWorker.getRegistrations();
   }
 
-  async function unregisterAll() {
+  function scriptUrls(reg) {
+    return [reg.active, reg.waiting, reg.installing]
+      .filter(Boolean)
+      .map((w) => w.scriptURL);
+  }
+
+  /** Drop workers that would fight root enable-threads (narrow webdesk SWs, old cors sw, etc.). */
+  async function unregisterCompetitors() {
     const regs = await listRegs();
     await Promise.all(
       regs.map(async (reg) => {
+        const urls = scriptUrls(reg);
+        const isRootEnable = urls.some((u) => u.includes("/enable-threads.js"));
+        // Keep root enable-threads if already present; remove everything else on this origin
+        // that might own a parent/child scope and block claim.
+        if (isRootEnable && reg.scope === new URL("/", location.origin).href) {
+          return;
+        }
         try {
           await reg.unregister();
-          console.log("[WebDesk COI] unregistered", reg.scope);
+          console.log("[WebDesk COI] unregistered competing SW", reg.scope, urls.join(","));
         } catch (e) {
           console.warn("[WebDesk COI] unregister failed", e);
         }
@@ -57,55 +71,93 @@
   }
 
   async function waitForController(timeoutMs) {
-    if (navigator.serviceWorker.controller) return true;
+    if (navigator.serviceWorker.controller) {
+      const u = navigator.serviceWorker.controller.scriptURL;
+      if (u.includes("enable-threads.js")) return true;
+    }
     return new Promise((resolve) => {
-      const t = setTimeout(() => resolve(!!navigator.serviceWorker.controller), timeoutMs);
+      const t = setTimeout(() => {
+        const c = navigator.serviceWorker.controller;
+        resolve(!!(c && c.scriptURL.includes("enable-threads.js")));
+      }, timeoutMs);
       navigator.serviceWorker.addEventListener(
         "controllerchange",
         () => {
           clearTimeout(t);
-          resolve(true);
+          const c = navigator.serviceWorker.controller;
+          resolve(!!(c && c.scriptURL.includes("enable-threads.js")));
         },
         { once: true }
       );
     });
   }
 
-  async function registerExclusive() {
+  async function registerRootSw() {
     if (!("serviceWorker" in navigator)) {
       throw new Error("serviceWorker API missing");
     }
-    await unregisterAll();
-    await new Promise((r) => setTimeout(r, 75));
+    await unregisterCompetitors();
+    await new Promise((r) => setTimeout(r, 50));
 
-    const reg = await navigator.serviceWorker.register(SW_PATH, {
-      scope: "./",
+    // scope "/" — only legal because the script lives at /enable-threads.js
+    const reg = await navigator.serviceWorker.register(ROOT_SW, {
+      scope: "/",
       updateViaCache: "none",
     });
+    console.log("[WebDesk COI] register() ok", reg.scope, ROOT_SW);
 
     if (reg.waiting) {
       reg.waiting.postMessage({ type: "SKIP_WAITING" });
     }
     await navigator.serviceWorker.ready;
-    await waitForController(5000);
+    const ok = await waitForController(6000);
+    if (!ok) {
+      console.warn(
+        "[WebDesk COI] registered but controller not enable-threads yet",
+        navigator.serviceWorker.controller?.scriptURL
+      );
+    }
     return reg;
+  }
+
+  async function unregisterRootIsolation() {
+    const regs = await listRegs();
+    await Promise.all(
+      regs.map(async (reg) => {
+        const urls = scriptUrls(reg);
+        if (
+          urls.some(
+            (u) =>
+              u.includes("enable-threads.js") ||
+              u.includes("coi-sw.js") ||
+              u.includes("/sw.js")
+          )
+        ) {
+          try {
+            await reg.unregister();
+            console.log("[WebDesk COI] unregistered", reg.scope);
+          } catch (_) {}
+        }
+      })
+    );
   }
 
   window.WebDeskCOI = {
     KEY,
     isEnabled: wantCoi,
     isIsolated: () => !!window.crossOriginIsolated,
+    rootSw: ROOT_SW,
     async setEnabled(on) {
       localStorage.setItem(KEY, on ? "1" : "0");
       sessionStorage.removeItem(RELOAD_KEY);
       sessionStorage.removeItem(FAIL_KEY);
       if (!on) {
-        await unregisterAll();
+        await unregisterRootIsolation();
         hardNavigate();
         return;
       }
       try {
-        await registerExclusive();
+        await registerRootSw();
       } catch (e) {
         console.error("[WebDesk COI] enable failed", e);
       }
@@ -122,8 +174,8 @@
         want: wantCoi(),
         isolated: !!window.crossOriginIsolated,
         controller: navigator.serviceWorker?.controller?.scriptURL || null,
+        rootSw: ROOT_SW,
         reloads: getReloads(),
-        ua: navigator.userAgent,
         regs: regs.map((r) => ({
           scope: r.scope,
           active: r.active?.scriptURL,
@@ -133,7 +185,6 @@
     },
   };
 
-  // Strip _coi from the visible URL after a successful isolated load (optional cleanup)
   function cleanUrlQuietly() {
     try {
       if (!window.crossOriginIsolated) return;
@@ -146,12 +197,13 @@
 
   // -------- boot --------
   if (!wantCoi()) {
+    // If isolation SW still controlling while feature is off, drop it once
     listRegs().then(async (regs) => {
-      const hasCoi = regs.some((r) =>
-        [r.active, r.waiting, r.installing].some((w) => w && /coi-sw/i.test(w.scriptURL))
+      const iso = regs.some((r) =>
+        scriptUrls(r).some((u) => /enable-threads|coi-sw/i.test(u))
       );
-      if (hasCoi) {
-        await unregisterAll();
+      if (iso) {
+        await unregisterRootIsolation();
         if (sessionStorage.getItem("WebDesk_coi_cleanup") !== "1") {
           sessionStorage.setItem("WebDesk_coi_cleanup", "1");
           hardNavigate();
@@ -167,7 +219,7 @@
     sessionStorage.removeItem(RELOAD_KEY);
     sessionStorage.removeItem(FAIL_KEY);
     cleanUrlQuietly();
-    console.log("[WebDesk COI] crossOriginIsolated OK");
+    console.log("[WebDesk COI] crossOriginIsolated OK (site-wide SW)");
     return;
   }
 
@@ -185,13 +237,17 @@
   }
 
   setReloads(n + 1);
-  console.log("[WebDesk COI] not isolated — register + replace navigate", n + 1, "/", MAX);
+  console.log(
+    "[WebDesk COI] not isolated — register ROOT",
+    ROOT_SW,
+    "scope=/ attempt",
+    n + 1,
+    "/",
+    MAX
+  );
 
-  registerExclusive()
-    .then((reg) => {
-      console.log("[WebDesk COI] registered", reg.scope, "ctrl=", navigator.serviceWorker.controller?.scriptURL);
-      hardNavigate();
-    })
+  registerRootSw()
+    .then(() => hardNavigate())
     .catch((err) => {
       console.error("[WebDesk COI] register error", err);
       hardNavigate();
