@@ -1,21 +1,19 @@
 /**
- * WebDesk isolation SW — sole controller for /webdesk/v4/ scope.
- * Injects COOP + COEP so the desktop can be crossOriginIsolated.
- * Do not register any other service worker under this scope.
+ * WebDesk isolation SW — sole controller for this scope.
+ * Firefox is strict about COOP changing across history entries; clients must
+ * activate via location.replace(), not reload(), when toggling isolation.
  */
 self.addEventListener("install", (event) => {
-  // Take over immediately
   event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
-      // Drop any old caches from prior experiments
       const keys = await caches.keys();
       await Promise.all(
         keys
-          .filter((k) => k.startsWith("webdesk-") || k.startsWith("ffwasm-") || k.startsWith("coi"))
+          .filter((k) => /webdesk|ffwasm|coi/i.test(k))
           .map((k) => caches.delete(k))
       );
       await self.clients.claim();
@@ -23,14 +21,15 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+self.addEventListener("message", (event) => {
+  if (event.data === "SKIP_WAITING" || event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 self.addEventListener("fetch", (event) => {
   const req = event.request;
-
-  // Bypass odd cache modes that throw in SW
-  if (req.cache === "only-if-cached" && req.mode !== "same-origin") {
-    return;
-  }
-
+  if (req.cache === "only-if-cached" && req.mode !== "same-origin") return;
   event.respondWith(handle(req));
 });
 
@@ -43,25 +42,22 @@ async function handle(req) {
     throw err;
   }
 
-  // Opaque / error responses cannot be rewritten
-  if (response.status === 0) {
-    return response;
-  }
+  if (response.status === 0) return response;
 
-  // Only rewrite same-origin responses (Pages HTML, JS, CSS, etc.)
   const url = new URL(req.url);
-  if (url.origin !== self.location.origin) {
-    return response;
-  }
+  if (url.origin !== self.location.origin) return response;
 
   const headers = new Headers(response.headers);
+
+  // COOP same-origin is required for crossOriginIsolated.
   headers.set("Cross-Origin-Opener-Policy", "same-origin");
-  // require-corp is what enables full isolation; third-party assets need CORP
-  // or must be same-origin. WebDesk should prefer local assets when COI is on.
-  headers.set("Cross-Origin-Embedder-Policy", "require-corp");
-  // Help same-origin assets used as CORP consumers
+
+  // credentialless: still enables isolation, fewer third-party CORP failures
+  // than require-corp (fonts, CDNs). Both work for SharedArrayBuffer in modern FF/Chrome.
+  headers.set("Cross-Origin-Embedder-Policy", "credentialless");
+
   if (!headers.has("Cross-Origin-Resource-Policy")) {
-    headers.set("Cross-Origin-Resource-Policy", "same-origin");
+    headers.set("Cross-Origin-Resource-Policy", "cross-origin");
   }
 
   return new Response(response.body, {

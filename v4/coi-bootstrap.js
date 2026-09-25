@@ -1,11 +1,12 @@
 /**
- * WebDesk COI bootstrap — runs before the desktop.
+ * WebDesk COI bootstrap
  *
- * localStorage  WebDesk_coi_enabled = "1" | "0"  (default off)
- * sessionStorage WebDesk_coi_reloads = "0"|"1"|"2"
- * sessionStorage WebDesk_coi_failed  = "1" after giving up
- *
- * Only one SW: ./coi-sw.js at scope ./
+ * Firefox shows:
+ *   "This page has not been loaded because it looks like the security
+ *    configuration doesn't match the previous page."
+ * when COOP differs between history entries (e.g. location.reload() after SW
+ * starts injecting COOP). Fix: always activate with location.replace() and a
+ * fresh URL so it is not a same-history COOP mismatch.
  */
 (function () {
   const KEY = "WebDesk_coi_enabled";
@@ -26,31 +27,28 @@
     sessionStorage.setItem(RELOAD_KEY, String(n));
   }
 
+  /** Navigate without keeping the previous COOP in session history (Firefox). */
+  function hardNavigate() {
+    const u = new URL(location.href);
+    // Drop prior coi cache-busters, add a new one
+    u.searchParams.delete("_coi");
+    u.searchParams.set("_coi", String(Date.now()));
+    // replace() avoids "security configuration doesn't match the previous page"
+    location.replace(u.pathname + u.search + u.hash);
+  }
+
   async function listRegs() {
     if (!("serviceWorker" in navigator)) return [];
     return navigator.serviceWorker.getRegistrations();
   }
 
-  /** Remove every SW that could fight for this scope or parent scopes. */
-  async function unregisterConflicting() {
+  async function unregisterAll() {
     const regs = await listRegs();
     await Promise.all(
       regs.map(async (reg) => {
-        const urls = [reg.active, reg.waiting, reg.installing]
-          .filter(Boolean)
-          .map((w) => w.scriptURL);
-        // Unregister anything under webdesk, or unknown workers on this origin
-        const ours = urls.some(
-          (u) =>
-            u.includes("/webdesk/") ||
-            u.includes("coi-sw") ||
-            u.includes("coi-serviceworker") ||
-            u.includes("sw.js")
-        );
-        // Always unregister all on this origin when managing COI — Pages SW conflicts are common
         try {
-          const ok = await reg.unregister();
-          console.log("[WebDesk COI] unregistered", urls.join(",") || reg.scope, ok);
+          await reg.unregister();
+          console.log("[WebDesk COI] unregistered", reg.scope);
         } catch (e) {
           console.warn("[WebDesk COI] unregister failed", e);
         }
@@ -77,21 +75,19 @@
     if (!("serviceWorker" in navigator)) {
       throw new Error("serviceWorker API missing");
     }
-    // Clear conflicts first
-    await unregisterConflicting();
-    // Small delay so browser drops old controller
-    await new Promise((r) => setTimeout(r, 50));
+    await unregisterAll();
+    await new Promise((r) => setTimeout(r, 75));
 
     const reg = await navigator.serviceWorker.register(SW_PATH, {
       scope: "./",
       updateViaCache: "none",
     });
-    await navigator.serviceWorker.ready;
-    // Force activate
+
     if (reg.waiting) {
       reg.waiting.postMessage({ type: "SKIP_WAITING" });
     }
-    await waitForController(4000);
+    await navigator.serviceWorker.ready;
+    await waitForController(5000);
     return reg;
   }
 
@@ -104,8 +100,8 @@
       sessionStorage.removeItem(RELOAD_KEY);
       sessionStorage.removeItem(FAIL_KEY);
       if (!on) {
-        await unregisterConflicting();
-        location.reload();
+        await unregisterAll();
+        hardNavigate();
         return;
       }
       try {
@@ -113,7 +109,7 @@
       } catch (e) {
         console.error("[WebDesk COI] enable failed", e);
       }
-      location.reload();
+      hardNavigate();
     },
     consumeFailureFlag() {
       const f = sessionStorage.getItem(FAIL_KEY) === "1";
@@ -127,6 +123,7 @@
         isolated: !!window.crossOriginIsolated,
         controller: navigator.serviceWorker?.controller?.scriptURL || null,
         reloads: getReloads(),
+        ua: navigator.userAgent,
         regs: regs.map((r) => ({
           scope: r.scope,
           active: r.active?.scriptURL,
@@ -136,19 +133,28 @@
     },
   };
 
+  // Strip _coi from the visible URL after a successful isolated load (optional cleanup)
+  function cleanUrlQuietly() {
+    try {
+      if (!window.crossOriginIsolated) return;
+      const u = new URL(location.href);
+      if (!u.searchParams.has("_coi")) return;
+      u.searchParams.delete("_coi");
+      history.replaceState(null, "", u.pathname + u.search + u.hash);
+    } catch (_) {}
+  }
+
   // -------- boot --------
   if (!wantCoi()) {
-    // If a COI SW is still controlling while feature is off, drop it once
     listRegs().then(async (regs) => {
-      const coiRegs = regs.filter((r) =>
-        [r.active, r.waiting, r.installing].some((w) => w && w.scriptURL.includes("coi-sw"))
+      const hasCoi = regs.some((r) =>
+        [r.active, r.waiting, r.installing].some((w) => w && /coi-sw/i.test(w.scriptURL))
       );
-      if (coiRegs.length) {
-        await unregisterConflicting();
-        // One cleanup reload if we were isolated under a stale SW
+      if (hasCoi) {
+        await unregisterAll();
         if (sessionStorage.getItem("WebDesk_coi_cleanup") !== "1") {
           sessionStorage.setItem("WebDesk_coi_cleanup", "1");
-          location.reload();
+          hardNavigate();
         }
       } else {
         sessionStorage.removeItem("WebDesk_coi_cleanup");
@@ -157,10 +163,10 @@
     return;
   }
 
-  // Feature ON
   if (window.crossOriginIsolated) {
     sessionStorage.removeItem(RELOAD_KEY);
     sessionStorage.removeItem(FAIL_KEY);
+    cleanUrlQuietly();
     console.log("[WebDesk COI] crossOriginIsolated OK");
     return;
   }
@@ -169,26 +175,25 @@
   if (n >= MAX) {
     sessionStorage.setItem(FAIL_KEY, "1");
     sessionStorage.removeItem(RELOAD_KEY);
-    console.warn("[WebDesk COI] gave up after", MAX, "reloads. controller=", navigator.serviceWorker?.controller?.scriptURL);
+    console.warn(
+      "[WebDesk COI] gave up after",
+      MAX,
+      "attempts. controller=",
+      navigator.serviceWorker?.controller?.scriptURL
+    );
     return;
   }
 
   setReloads(n + 1);
-  console.log("[WebDesk COI] not isolated — exclusive SW register + reload", n + 1, "/", MAX);
+  console.log("[WebDesk COI] not isolated — register + replace navigate", n + 1, "/", MAX);
 
   registerExclusive()
     .then((reg) => {
-      console.log(
-        "[WebDesk COI] registered",
-        reg.scope,
-        "controller=",
-        navigator.serviceWorker.controller?.scriptURL
-      );
-      location.reload();
+      console.log("[WebDesk COI] registered", reg.scope, "ctrl=", navigator.serviceWorker.controller?.scriptURL);
+      hardNavigate();
     })
     .catch((err) => {
       console.error("[WebDesk COI] register error", err);
-      // Still reload to consume attempt; next pass may work
-      location.reload();
+      hardNavigate();
     });
 })();
