@@ -227,14 +227,22 @@
             const coiToggle = document.getElementById('coi-toggle');
             const coiStatus = document.getElementById('coi-status');
             const coiApply = document.getElementById('coi-apply');
-            function refreshCoiStatus() {
+            async function refreshCoiStatus() {
                 const on = localStorage.getItem('WebDesk_coi_enabled') === '1';
                 if (coiToggle) coiToggle.checked = on;
+                let extra = '';
+                try {
+                    const d = await window.parent.WebDeskCOI?.debug?.();
+                    if (d) {
+                        extra = ' · SW: ' + (d.controller ? d.controller.split('/').pop() : 'none')
+                          + ' · regs ' + (d.regs?.length ?? 0);
+                    }
+                } catch (_) {}
                 const isolated = !!window.parent.crossOriginIsolated;
                 if (coiStatus) {
                     coiStatus.textContent = on
-                        ? ('Isolation ' + (isolated ? 'active (crossOriginIsolated)' : 'enabled but not active yet'))
-                        : 'Isolation off';
+                        ? ('Isolation ' + (isolated ? 'active' : 'NOT active') + extra)
+                        : ('Isolation off' + extra);
                 }
             }
             refreshCoiStatus();
