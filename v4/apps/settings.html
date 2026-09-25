@@ -34,6 +34,7 @@
         <div class="sidebar">
             <div class="sidebar-item active" data-tab="wallpaper">Wallpaper</div>
             <div class="sidebar-item" data-tab="apps">Apps</div>
+            <div class="sidebar-item" data-tab="system">System</div>
             <div class="sidebar-item" data-tab="debug">Debug & Reset</div>
         </div>
         <div class="main-content">
@@ -52,6 +53,25 @@
             <section class="tab-content" data-tab="apps">
                 <h2>Apps</h2>
                 <iframe class="apps-frame" src="./appmaker"></iframe>
+            </section>
+
+
+            <section class="tab-content" data-tab="system">
+                <h2>System</h2>
+                <div class="settings-card">
+                    <h3 style="margin:0 0 8px;font-size:15px;">Cross-origin isolation</h3>
+                    <p class="muted">Enables SharedArrayBuffer (needed for apps like Firefox WASM). Uses a service worker to add COOP/COEP headers. May affect some third-party embeds.</p>
+                    <div class="upload-row" style="margin-top:12px;align-items:center;">
+                        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                            <input type="checkbox" id="coi-toggle" />
+                            <span>Enable isolation headers</span>
+                        </label>
+                    </div>
+                    <p class="muted" id="coi-status" style="margin-top:10px;"></p>
+                    <div class="upload-row" style="margin-top:8px;">
+                        <button class="btn" id="coi-apply" type="button">Apply & reload</button>
+                    </div>
+                </div>
             </section>
 
             <section class="tab-content" data-tab="debug">
@@ -201,6 +221,36 @@
                 const file = event.target.files?.[0];
                 if (!file) return;
                 setWallpaperFromFile(file);
+            });
+
+            
+            const coiToggle = document.getElementById('coi-toggle');
+            const coiStatus = document.getElementById('coi-status');
+            const coiApply = document.getElementById('coi-apply');
+            function refreshCoiStatus() {
+                const on = localStorage.getItem('WebDesk_coi_enabled') === '1';
+                if (coiToggle) coiToggle.checked = on;
+                const isolated = !!window.parent.crossOriginIsolated;
+                if (coiStatus) {
+                    coiStatus.textContent = on
+                        ? ('Isolation ' + (isolated ? 'active (crossOriginIsolated)' : 'enabled but not active yet'))
+                        : 'Isolation off';
+                }
+            }
+            refreshCoiStatus();
+            coiApply?.addEventListener('click', () => {
+                const on = !!coiToggle?.checked;
+                try {
+                    if (window.parent.WebDeskCOI) {
+                        window.parent.WebDeskCOI.setEnabled(on);
+                    } else {
+                        localStorage.setItem('WebDesk_coi_enabled', on ? '1' : '0');
+                        window.parent.location.reload();
+                    }
+                } catch (e) {
+                    localStorage.setItem('WebDesk_coi_enabled', on ? '1' : '0');
+                    window.parent.location.reload();
+                }
             });
 
             document.getElementById('open-appcenter').addEventListener('click', () => {

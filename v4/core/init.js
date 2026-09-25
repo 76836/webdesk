@@ -463,9 +463,70 @@ class WebDesk {
     }
 }
 
+
+function showCoiFailureWindow() {
+    try {
+        if (!window.WebDeskCOI?.consumeFailureFlag?.()) return;
+        const overlay = document.createElement('div');
+        overlay.id = 'webdesk-coi-error';
+        Object.assign(overlay.style, {
+            position: 'fixed', inset: '0', zIndex: '200000',
+            background: 'rgba(0,0,0,0.55)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', padding: '20px'
+        });
+        const box = document.createElement('div');
+        Object.assign(box.style, {
+            maxWidth: '420px', width: '100%', background: '#1c1c22',
+            color: '#f0f0f2', borderRadius: '14px', padding: '20px 22px',
+            border: '1px solid rgba(255,255,255,0.12)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+            fontFamily: 'system-ui, -apple-system, sans-serif'
+        });
+        box.innerHTML = `
+          <div style="font-size:17px;font-weight:600;margin-bottom:10px;">Isolation headers failed</div>
+          <p style="margin:0 0 12px;color:#a0a0a8;font-size:14px;line-height:1.45;">
+            Cross-origin isolation was enabled, but the page could not become
+            <code style="color:#ccc">crossOriginIsolated</code> after 2 reload attempts.
+            SharedArrayBuffer apps (for example Firefox WASM) will not work until this succeeds.
+          </p>
+          <p style="margin:0 0 16px;color:#a0a0a8;font-size:13px;line-height:1.4;">
+            Try a hard refresh, confirm the service worker is allowed, or turn the feature off in Settings → System.
+          </p>
+          <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;">
+            <button id="coi-err-settings" type="button" style="border:0;border-radius:8px;padding:8px 14px;cursor:pointer;background:rgba(255,255,255,0.12);color:#fff;">Open Settings</button>
+            <button id="coi-err-disable" type="button" style="border:0;border-radius:8px;padding:8px 14px;cursor:pointer;background:rgba(190,50,50,0.85);color:#fff;">Disable isolation</button>
+            <button id="coi-err-ok" type="button" style="border:0;border-radius:8px;padding:8px 14px;cursor:pointer;background:#3b82f6;color:#fff;">OK</button>
+          </div>`;
+        overlay.appendChild(box);
+        document.body.appendChild(overlay);
+        const close = () => overlay.remove();
+        box.querySelector('#coi-err-ok')?.addEventListener('click', close);
+        box.querySelector('#coi-err-disable')?.addEventListener('click', () => {
+            window.WebDeskCOI?.setEnabled?.(false);
+        });
+        box.querySelector('#coi-err-settings')?.addEventListener('click', () => {
+            close();
+            try {
+                window.WebDesk?.windowManager?.createWindow?.('themes', {
+                    title: 'Settings',
+                    url: new URL('../apps/settings', import.meta.url).href,
+                    iconUrl: 'https://76836.github.io/webdesk/images/icons/settings.png'
+                });
+                setTimeout(() => {
+                    const frame = document.querySelector('.app-window[data-app-id="themes"] iframe');
+                    frame?.contentWindow?.postMessage({ type: 'settingsTab', tab: 'system' }, '*');
+                }, 400);
+            } catch (_) {}
+        });
+    } catch (e) {
+        console.warn('[WebDesk COI] error UI', e);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     window.WebDesk = new WebDesk();
     setupLauncherInteractions();
+    setTimeout(showCoiFailureWindow, 600);
 
     if (!localStorage.getItem('wallpaper')) {
         window.postMessage({ type: 'setWallpaper', url: 'https://76836.github.io/webdesk/images/wallpapers/water.png' }, '*');
