@@ -858,10 +858,11 @@ body.webdesk-games-mode .shelf {
     border-left: 1px solid rgba(224, 224, 224, 0.35);
     border-bottom-left-radius: 12px;
     border-bottom-right-radius: 0;
-    z-index: 10;
-    opacity: 0.4;
+    z-index: 10000;
+    opacity: 0.55;
     transition: opacity 0.2s ease;
     cursor: default;
+    pointer-events: auto;
 }
 
 .app-window.games-mode.maximized .title-bar:hover,
@@ -903,8 +904,27 @@ body.webdesk-games-mode .shelf {
 
 
 .app-window.games-mode.maximized .games-menu-btn {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: white;
     font-size: 14px;
     font-weight: 600;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    padding: 0;
+    margin-left: 2px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    pointer-events: auto;
+}
+.app-window.games-mode.maximized .games-menu-btn:hover {
+    background-color: rgba(0, 0, 0, 0.12);
 }
 
 .app-window.games-mode.maximized .games-menu {
@@ -919,8 +939,9 @@ body.webdesk-games-mode .shelf {
     border: 1px solid rgba(224, 224, 224, 0.35);
     border-radius: 16px;
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
-    z-index: 30;
+    z-index: 10001;
     pointer-events: auto;
+    touch-action: manipulation;
 }
 
 .app-window.games-mode.maximized .games-menu[hidden] {
@@ -997,6 +1018,8 @@ body.webdesk-games-mode .shelf {
 .app-window.games-mode.maximized .app-content {
     height: 100% !important;
     border-radius: 0;
+    position: relative;
+    z-index: 1;
 }
 
 .app-window.games-mode.maximized .app-content iframe {
