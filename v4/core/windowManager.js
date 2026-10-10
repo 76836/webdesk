@@ -364,7 +364,8 @@ class WindowManager {
         const win = this.openWindows.get(id);
         if (!win) return;
         const controls = win.element.querySelector('.window-controls');
-        if (!controls) return;
+        const titleBar = win.element.querySelector('.title-bar');
+        if (!controls || !titleBar) return;
 
         if (!controls.querySelector('.games-fps')) {
             const fps = document.createElement('span');
@@ -374,115 +375,126 @@ class WindowManager {
             controls.insertBefore(fps, controls.firstChild);
         }
 
-        if (!controls.querySelector('.games-menu-btn')) {
-            const btn = document.createElement('span');
-            btn.className = 'games-menu-btn';
-            btn.title = 'Game menu';
-            btn.setAttribute('role', 'button');
-            btn.textContent = '☰';
-            const fps = controls.querySelector('.games-fps');
-            if (fps && fps.nextSibling) controls.insertBefore(btn, fps.nextSibling);
-            else controls.insertBefore(btn, controls.firstChild);
+        if (controls.querySelector('.games-menu-btn')) return;
 
-            const menu = document.createElement('div');
-            menu.className = 'games-menu';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'games-menu-btn';
+        btn.title = 'Game menu';
+        btn.setAttribute('aria-label', 'Game menu');
+        btn.textContent = '☰';
+        const fps = controls.querySelector('.games-fps');
+        if (fps && fps.nextSibling) controls.insertBefore(btn, fps.nextSibling);
+        else controls.insertBefore(btn, controls.firstChild);
+
+        const menu = document.createElement('div');
+        menu.className = 'games-menu';
+        menu.hidden = true;
+        menu.innerHTML = `
+            <div class="games-menu-grid">
+                <button type="button" class="games-menu-tile" data-action="close-others">
+                    <span class="gmt-icon" aria-hidden="true">⧉</span>
+                    <span class="gmt-label">Close others</span>
+                    <span class="gmt-sub">Hide other apps</span>
+                </button>
+                <button type="button" class="games-menu-tile" data-action="fullscreen">
+                    <span class="gmt-icon" aria-hidden="true">⛶</span>
+                    <span class="gmt-label">Fullscreen</span>
+                    <span class="gmt-sub">Browser display</span>
+                </button>
+                <button type="button" class="games-menu-tile" data-action="ping">
+                    <span class="gmt-icon" aria-hidden="true">⌁</span>
+                    <span class="gmt-label">Ping test</span>
+                    <span class="gmt-sub">Check connection</span>
+                </button>
+                <button type="button" class="games-menu-tile games-menu-tile-danger" data-action="quit">
+                    <span class="gmt-icon" aria-hidden="true">⌂</span>
+                    <span class="gmt-label">Quit game</span>
+                    <span class="gmt-sub">Back to launcher</span>
+                </button>
+            </div>
+            <div class="games-ping-result" hidden></div>
+        `;
+        titleBar.appendChild(menu);
+
+        const openMenu = () => {
+            menu.hidden = false;
+            win._gamesMenuIgnoreUntil = performance.now() + 400;
+        };
+        const closeMenu = () => {
             menu.hidden = true;
-            menu.innerHTML = `
-                <div class="games-menu-grid">
-                    <button type="button" class="games-menu-tile" data-action="close-others">
-                        <span class="gmt-icon" aria-hidden="true">⧉</span>
-                        <span class="gmt-label">Close others</span>
-                        <span class="gmt-sub">Hide other apps</span>
-                    </button>
-                    <button type="button" class="games-menu-tile" data-action="fullscreen">
-                        <span class="gmt-icon" aria-hidden="true">⛶</span>
-                        <span class="gmt-label">Fullscreen</span>
-                        <span class="gmt-sub">Browser display</span>
-                    </button>
-                    <button type="button" class="games-menu-tile" data-action="ping">
-                        <span class="gmt-icon" aria-hidden="true">⌁</span>
-                        <span class="gmt-label">Ping test</span>
-                        <span class="gmt-sub">Check connection</span>
-                    </button>
-                    <button type="button" class="games-menu-tile games-menu-tile-danger" data-action="quit">
-                        <span class="gmt-icon" aria-hidden="true">⌂</span>
-                        <span class="gmt-label">Quit game</span>
-                        <span class="gmt-sub">Back to launcher</span>
-                    </button>
-                </div>
-                <div class="games-ping-result" hidden></div>
-            `;
-            const titleBar = win.element.querySelector('.title-bar');
-            titleBar.appendChild(menu);
+            const pr = menu.querySelector('.games-ping-result');
+            if (pr) { pr.hidden = true; pr.textContent = ''; }
+        };
+        const toggleMenu = () => {
+            if (menu.hidden) openMenu();
+            else closeMenu();
+        };
 
-            // Only stopPropagation — preventDefault on mousedown kills the click in browsers.
-            const stopBubble = (e) => { e.stopPropagation(); };
+        // Pointer + touch + click — touchscreens often skip reliable click on spans
+        const onBtnActivate = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleMenu();
+        };
+        btn.addEventListener('pointerup', onBtnActivate);
+        btn.addEventListener('click', onBtnActivate);
+        btn.addEventListener('touchend', onBtnActivate, { passive: false });
 
-            btn.addEventListener('mousedown', stopBubble);
-            btn.addEventListener('pointerdown', stopBubble);
-            btn.addEventListener('touchstart', stopBubble, { passive: true });
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                menu.hidden = !menu.hidden;
-                if (menu.hidden) {
-                    const pr = menu.querySelector('.games-ping-result');
-                    if (pr) { pr.hidden = true; pr.textContent = ''; }
-                }
-            });
+        const stopBubble = (e) => e.stopPropagation();
+        btn.addEventListener('pointerdown', stopBubble);
+        btn.addEventListener('mousedown', stopBubble);
+        btn.addEventListener('touchstart', stopBubble, { passive: true });
+        menu.addEventListener('pointerdown', stopBubble);
+        menu.addEventListener('mousedown', stopBubble);
+        menu.addEventListener('touchstart', stopBubble, { passive: true });
+        menu.addEventListener('click', stopBubble);
 
-            menu.addEventListener('mousedown', stopBubble);
-            menu.addEventListener('pointerdown', stopBubble);
-            menu.addEventListener('touchstart', stopBubble, { passive: true });
-            menu.addEventListener('click', (e) => e.stopPropagation());
+        menu.querySelector('[data-action="close-others"]').onclick = (e) => {
+            e.stopPropagation();
+            this.closeOtherWindows(id);
+            closeMenu();
+        };
+        menu.querySelector('[data-action="fullscreen"]').onclick = async (e) => {
+            e.stopPropagation();
+            try {
+                if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+                else await document.exitFullscreen();
+            } catch (err) {
+                console.warn('fullscreen failed', err);
+            }
+            closeMenu();
+        };
+        menu.querySelector('[data-action="ping"]').onclick = (e) => {
+            e.stopPropagation();
+            const pr = menu.querySelector('.games-ping-result');
+            if (pr) pr.hidden = false;
+            this.runPingTest(menu);
+        };
+        menu.querySelector('[data-action="quit"]').onclick = (e) => {
+            e.stopPropagation();
+            const ok = window.confirm(
+                'Quit game and return to the Games Launcher?\n\nUnsaved progress in the current game may be lost.'
+            );
+            if (!ok) return;
+            const iframe = win.element.querySelector('iframe');
+            const home = (win.config && win.config.url) || 'https://76836.github.io/games';
+            if (iframe) iframe.src = home;
+            closeMenu();
+        };
 
-            menu.querySelector('[data-action="close-others"]').onclick = (e) => {
-                e.stopPropagation();
-                this.closeOtherWindows(id);
-                menu.hidden = true;
-            };
-            menu.querySelector('[data-action="fullscreen"]').onclick = async (e) => {
-                e.stopPropagation();
-                try {
-                    if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
-                    else await document.exitFullscreen();
-                } catch (err) {
-                    console.warn('fullscreen failed', err);
-                }
-                menu.hidden = true;
-            };
-            menu.querySelector('[data-action="ping"]').onclick = (e) => {
-                e.stopPropagation();
-                const pr = menu.querySelector('.games-ping-result');
-                if (pr) pr.hidden = false;
-                this.runPingTest(menu);
-            };
-            menu.querySelector('[data-action="quit"]').onclick = (e) => {
-                e.stopPropagation();
-                const ok = window.confirm(
-                    'Quit game and return to the Games Launcher?\n\nUnsaved progress in the current game may be lost.'
-                );
-                if (!ok) return;
-                const iframe = win.element.querySelector('iframe');
-                const home = (win.config && win.config.url) || 'https://76836.github.io/games';
-                // Stay in immersive mode — only navigate the iframe back to the launcher
-                if (iframe) iframe.src = home;
-                menu.hidden = true;
-            };
-
-            const onDoc = (ev) => {
-                if (!win.element.classList.contains('games-mode')) {
-                    document.removeEventListener('click', onDoc, true);
-                    return;
-                }
-                if (menu.hidden) return;
-                if (!menu.contains(ev.target) && ev.target !== btn && !btn.contains(ev.target)) {
-                    menu.hidden = true;
-                }
-            };
-            // capture:false, after button click toggles open
-            document.addEventListener('click', onDoc, true);
-            win._gamesMenuDocHandler = onDoc;
-        }
+        const onDoc = (ev) => {
+            if (!win.element.classList.contains('games-mode')) {
+                document.removeEventListener('pointerdown', onDoc, true);
+                return;
+            }
+            if (menu.hidden) return;
+            if (performance.now() < (win._gamesMenuIgnoreUntil || 0)) return;
+            if (menu.contains(ev.target) || btn.contains(ev.target)) return;
+            closeMenu();
+        };
+        document.addEventListener('pointerdown', onDoc, true);
+        win._gamesMenuDocHandler = onDoc;
     }
 
     applyGamesMode(id, on) {
@@ -500,7 +512,7 @@ class WindowManager {
             el.classList.remove('games-mode');
             this.removeGamesChrome(id);
             if (win._gamesMenuDocHandler) {
-                document.removeEventListener('click', win._gamesMenuDocHandler, true);
+                document.removeEventListener('pointerdown', win._gamesMenuDocHandler, true);
                 win._gamesMenuDocHandler = null;
             }
             let any = false;
@@ -545,6 +557,15 @@ class WindowManager {
     minimizeWindow(id) {
         const win = this.openWindows.get(id);
         if (!win) return;
+        // Leave immersive/maximized chrome before hiding the window
+        if (win.isMaximized) {
+            if (win.element.classList.contains('games-mode')) {
+                this.applyGamesMode(id, false);
+            }
+            if (win.oldRect) Object.assign(win.element.style, win.oldRect);
+            win.element.classList.remove('maximized');
+            win.isMaximized = false;
+        }
         win.state = 'minimized';
         win.element.style.display = 'none';
         win.taskbarIcon.classList.remove('active');
