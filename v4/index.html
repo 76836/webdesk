@@ -188,11 +188,11 @@
     // 1. Loading Screen Logic
     window.addEventListener('load', () => {
       const splash = document.getElementById('splash-screen');
-      // Short fade only — no artificial multi-second boot delay
-      requestAnimationFrame(() => {
+      // Visible for ~1s so the boot mark still reads, without the old 5s stall
+      setTimeout(() => {
         splash.classList.add('fade-out');
-        setTimeout(() => splash.remove(), 180);
-      });
+        setTimeout(() => splash.remove(), 200);
+      }, 1000);
     });
 
     // 2. Fullscreen Logic
