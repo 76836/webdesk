@@ -302,7 +302,7 @@ class WindowManager {
         const url = String(cfg.url || '');
         const title = String(cfg.title || '').toLowerCase();
         if (title.includes('games launcher') || title === 'games') return true;
-        if (/76836\.github\.io\/games\/?(\?|$)/i.test(url)) return true;
+        if (/76836\.github\.io\/games(\?|$)/i.test(url)) return true;
         return false;
     }
 
@@ -548,7 +548,7 @@ class WindowManager {
             });
             if (!ok) return;
             const iframe = win.element.querySelector('iframe');
-            const home = (win.config && win.config.url) || 'https://76836.github.io/games';
+            const home = (win.config && win.config.url) || 'https://76836.github.io/games?embed=true';
             if (iframe) iframe.src = home;
         };
 
