@@ -415,13 +415,14 @@ class WindowManager {
             const titleBar = win.element.querySelector('.title-bar');
             titleBar.appendChild(menu);
 
-            const stop = (e) => { e.stopPropagation(); e.preventDefault(); };
+            // Only stopPropagation — preventDefault on mousedown kills the click in browsers.
+            const stopBubble = (e) => { e.stopPropagation(); };
 
-            btn.addEventListener('mousedown', stop);
-            btn.addEventListener('touchstart', stop, { passive: false });
+            btn.addEventListener('mousedown', stopBubble);
+            btn.addEventListener('pointerdown', stopBubble);
+            btn.addEventListener('touchstart', stopBubble, { passive: true });
             btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                e.preventDefault();
                 menu.hidden = !menu.hidden;
                 if (menu.hidden) {
                     const pr = menu.querySelector('.games-ping-result');
@@ -429,8 +430,9 @@ class WindowManager {
                 }
             });
 
-            menu.addEventListener('mousedown', stop);
-            menu.addEventListener('touchstart', stop, { passive: false });
+            menu.addEventListener('mousedown', stopBubble);
+            menu.addEventListener('pointerdown', stopBubble);
+            menu.addEventListener('touchstart', stopBubble, { passive: true });
             menu.addEventListener('click', (e) => e.stopPropagation());
 
             menu.querySelector('[data-action="close-others"]').onclick = (e) => {
@@ -469,14 +471,16 @@ class WindowManager {
 
             const onDoc = (ev) => {
                 if (!win.element.classList.contains('games-mode')) {
-                    document.removeEventListener('mousedown', onDoc);
+                    document.removeEventListener('click', onDoc, true);
                     return;
                 }
+                if (menu.hidden) return;
                 if (!menu.contains(ev.target) && ev.target !== btn && !btn.contains(ev.target)) {
                     menu.hidden = true;
                 }
             };
-            document.addEventListener('mousedown', onDoc);
+            // capture:false, after button click toggles open
+            document.addEventListener('click', onDoc, true);
             win._gamesMenuDocHandler = onDoc;
         }
     }
@@ -496,7 +500,7 @@ class WindowManager {
             el.classList.remove('games-mode');
             this.removeGamesChrome(id);
             if (win._gamesMenuDocHandler) {
-                document.removeEventListener('mousedown', win._gamesMenuDocHandler);
+                document.removeEventListener('click', win._gamesMenuDocHandler, true);
                 win._gamesMenuDocHandler = null;
             }
             let any = false;
