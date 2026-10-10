@@ -3,253 +3,527 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AppCenter</title>
+    <title>WebDesk App Center</title>
     <link rel="stylesheet" href="../style.css">
 <style>
     :root {
         --primary: #25ffff;
         --on-primary: #021b25;
         --surface: #0b1117;
-        --secondary-container: rgba(55, 55, 55, 0.5);
-        --on-secondary-container: #e4f3ff;
+        --text: #e4f3ff;
+        --muted: rgba(228, 243, 255, 0.65);
+        --card: rgba(28, 36, 48, 0.72);
+        --outline: rgba(200, 220, 255, 0.18);
+        --accent: #6366f1;
+        --accent2: #a855f7;
         --error: #8c1d18;
         --on-error: #f9dedc;
-        --outline: rgba(200, 200, 255, 0.25);
-        --text: #e4f3ff;
-        --card: rgba(55, 55, 55, 0.5);
+        --ok: #1a7f4b;
     }
 
-    @media (prefers-color-scheme: dark) {
-        :root {
-            --primary: #a8c7fa;
-            --on-primary: #062e6f;
-            --surface: #111318;
-            --secondary-container: #4a4458;
-            --on-secondary-container: #e8def8;
-            --error: #8c1d18;
-            --on-error: #f9dedc;
-            --outline: #939091;
-            --text: #e3e3e3;
-            --card: #1e1f20;
-        }
-    }
+    * { box-sizing: border-box; }
 
     body {
         margin: 0;
-        font-family: 'Segoe UI', Roboto, sans-serif;
+        font-family: 'Segoe UI', system-ui, Roboto, sans-serif;
         background: transparent;
         color: var(--text);
-        padding: 16px;
-        display: grid;
-        gap: 20px;
-        max-width: 800px;
-        margin: auto;
-        transition: background-color 0.3s ease;
-        overflow: auto;
         min-height: 100%;
+        overflow: auto;
     }
 
-    section {
-        background: var(--card);
-        border: var(--wd-glass-border);
-        backdrop-filter: blur(8px);
-        padding: 24px;
-        border-radius: 28px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    .ac-header {
+        position: sticky;
+        top: 0;
+        z-index: 20;
+        padding: 1.25rem 1.25rem 1rem;
+        background: linear-gradient(180deg, rgba(11, 17, 23, 0.92), rgba(11, 17, 23, 0.75));
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--outline);
+        text-align: center;
     }
 
-    h2, h3 { margin-top: 0; font-weight: 400; color: var(--text); letter-spacing: -0.5px; }
+    .ac-header h1 {
+        margin: 0;
+        font-size: 1.35rem;
+        font-weight: 650;
+        letter-spacing: -0.02em;
+        background: linear-gradient(90deg, #fff, var(--primary));
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
 
-    .form-group { margin-bottom: 16px; }
-    label { display: block; margin-bottom: 6px; font-size: 0.9rem; font-weight: 500; margin-left: 4px; }
+    .ac-header p {
+        margin: 0.35rem 0 0;
+        font-size: 0.8rem;
+        color: var(--muted);
+    }
 
-    input[type="text"], input[type="url"] {
-        width: 100%;
-        padding: 14px;
-        border: 1px solid var(--outline);
+    .search-bar {
+        display: flex;
+        gap: 0.5rem;
+        max-width: 520px;
+        margin: 0.9rem auto 0;
+    }
+
+    .search-bar input {
+        flex: 1;
+        padding: 0.7rem 1rem;
         border-radius: 12px;
-        background: transparent;
-        box-sizing: border-box;
+        border: 1px solid var(--outline);
+        background: rgba(0, 0, 0, 0.25);
         color: var(--text);
+        font-size: 0.95rem;
+    }
+
+    .search-bar input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(37, 255, 255, 0.15);
+    }
+
+    .tabs {
+        display: flex;
+        gap: 0.4rem;
+        justify-content: center;
+        margin-top: 0.85rem;
+        flex-wrap: wrap;
+    }
+
+    .tab {
+        border: 1px solid var(--outline);
+        background: transparent;
+        color: var(--muted);
+        padding: 0.35rem 0.85rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        cursor: pointer;
+    }
+
+    .tab.active {
+        background: rgba(37, 255, 255, 0.12);
+        color: var(--primary);
+        border-color: rgba(37, 255, 255, 0.35);
+    }
+
+    main {
+        padding: 1rem 1.1rem 2rem;
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+
+    .section-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin: 0.5rem 0 0.75rem;
+    }
+
+    .app-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 0.9rem;
+    }
+
+    .app-card {
+        background: var(--card);
+        border: 1px solid var(--outline);
+        border-radius: 18px;
+        padding: 1rem;
+        display: flex;
+        gap: 0.85rem;
+        align-items: flex-start;
+        transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+        backdrop-filter: blur(8px);
+    }
+
+    .app-card:hover {
+        transform: translateY(-2px);
+        border-color: rgba(37, 255, 255, 0.35);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .app-icon-wrap {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        overflow: hidden;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.35), rgba(37, 255, 255, 0.2));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.25rem;
+        color: #fff;
+    }
+
+    .app-icon-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .app-meta { flex: 1; min-width: 0; }
+
+    .app-title {
+        margin: 0;
+        font-size: 0.98rem;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .app-dev {
+        margin: 0.15rem 0 0;
+        font-size: 0.75rem;
+        color: var(--muted);
+    }
+
+    .app-cat {
+        display: inline-block;
+        margin-top: 0.35rem;
+        font-size: 0.68rem;
+        padding: 0.15rem 0.45rem;
+        border-radius: 6px;
+        background: rgba(99, 102, 241, 0.18);
+        color: #c4b5fd;
+    }
+
+    .app-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        align-items: stretch;
+        margin-top: 0.55rem;
     }
 
     .btn {
         border: none;
-        padding: 10px 20px;
-        border-radius: 100px;
-        font-weight: 500;
+        padding: 0.45rem 0.85rem;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 0.78rem;
         cursor: pointer;
-        font-size: 0.85rem;
+        white-space: nowrap;
     }
 
-    .btn-primary { background: var(--primary); color: var(--on-primary); }
-    .btn-danger { background: var(--error); color: var(--on-error); }
+    .btn-primary {
+        background: linear-gradient(90deg, var(--primary), #6ee7ff);
+        color: var(--on-primary);
+    }
 
-    .app-item {
-        display: flex;
-        align-items: center;
-        padding: 12px;
-        background: var(--card);
-        border-radius: 16px;
-        margin-bottom: 12px;
+    .btn-ghost {
+        background: transparent;
         border: 1px solid var(--outline);
-        opacity: 0.9;
+        color: var(--text);
     }
 
-    .app-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 12px;
-        object-fit: cover;
-        background: var(--secondary-container);
-        color: var(--on-secondary-container);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-        flex-shrink: 0;
+    .btn-danger {
+        background: var(--error);
+        color: var(--on-error);
     }
 
-    .app-details { flex-grow: 1; min-width: 0; margin-left: 16px;}
-    .app-title { font-weight: 600; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .app-url { font-size: 0.75rem; color: var(--outline); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .btn:hover { filter: brightness(1.08); }
+
+    .empty {
+        text-align: center;
+        color: var(--muted);
+        padding: 2rem 1rem;
+        grid-column: 1 / -1;
+    }
+
+    /* Manual add panel */
+    details.add-panel {
+        margin-top: 1.5rem;
+        border: 1px solid var(--outline);
+        border-radius: 16px;
+        background: var(--card);
+        padding: 0.75rem 1rem 1rem;
+    }
+
+    details.add-panel summary {
+        cursor: pointer;
+        font-weight: 600;
+        color: var(--primary);
+        list-style: none;
+    }
+
+    details.add-panel summary::-webkit-details-marker { display: none; }
+
+    .form-row {
+        display: grid;
+        gap: 0.65rem;
+        margin-top: 0.85rem;
+    }
+
+    .form-row label {
+        font-size: 0.78rem;
+        color: var(--muted);
+    }
+
+    .form-row input {
+        width: 100%;
+        padding: 0.65rem 0.8rem;
+        border-radius: 10px;
+        border: 1px solid var(--outline);
+        background: rgba(0,0,0,0.25);
+        color: var(--text);
+    }
 </style>
 </head>
 <body>
+    <header class="ac-header">
+        <h1>WebDesk App Center</h1>
+        <p>Install 76836 apps into your desktop</p>
+        <div class="search-bar">
+            <input type="search" id="searchInput" placeholder="Search apps…" aria-label="Search apps">
+        </div>
+        <div class="tabs" id="tabs">
+            <button type="button" class="tab active" data-filter="all">All</button>
+            <button type="button" class="tab" data-filter="installed">Installed</button>
+            <button type="button" class="tab" data-filter="available">Available</button>
+        </div>
+    </header>
 
-    <section>
-        <h2>AppCenter</h2>
-        <div class="form-group"><label>Title</label><input type="text" id="appTitle"></div>
-        <div class="form-group"><label>URL</label><input type="url" id="appUrl"></div>
-        <div class="form-group"><label>Icon URL (Optional)</label><input type="url" id="iconUrl"></div>
-        <button class="btn btn-primary" onclick="createApp()">Create Custom App</button>
-    </section>
+    <main>
+        <div class="section-label" id="sectionLabel">Catalog</div>
+        <div class="app-grid" id="appGrid"></div>
 
-    <section>
-        <h3>Installed Apps</h3>
-        <div id="installedApps"></div>
-    </section>
-
-    <section>
-        <h3>Not Installed Apps</h3>
-        <div id="marketplaceApps"></div>
-    </section>
+        <details class="add-panel">
+            <summary>+ Add custom app</summary>
+            <div class="form-row">
+                <label for="appTitle">Title</label>
+                <input type="text" id="appTitle" placeholder="My App">
+                <label for="appUrl">URL</label>
+                <input type="url" id="appUrl" placeholder="https://…">
+                <label for="iconUrl">Icon URL (optional)</label>
+                <input type="url" id="iconUrl" placeholder="https://…/icon.png">
+                <button type="button" class="btn btn-primary" id="btnAddCustom">Add to WebDesk</button>
+            </div>
+        </details>
+    </main>
 
     <script>
         const BASE_URL = "https://76836.github.io/";
+        const FALLBACK_ICON = BASE_URL + "apple-touch-icon.png";
+
+        // Verified live paths + icons (crawled Oct 2026). Dead entries removed.
         const catalog = [
-            { title: "Akari", path: "Akari/app", iconUrl: "https://76836.github.io/Akari/images/logo512.png" },
-            { title: "Akari-AIO", path: "Akari-AIO", iconUrl: "https://76836.github.io/Akari/images/logo512.png" },
-            { title: "Digita", path: "Digita", iconUrl: "https://76836.github.io/Digita/logo/512.png" },
-            { title: "side-glow", path: "side-glow" },
-            { title: "Lunabot", path: "lunabot/app", iconUrl: "https://76836.github.io/lunabot/app/icon-512.png" },
-            { title: "Terminal", path: "webdesk/programs/terminal", iconUrl: "https://76836.github.io/webdesk/programs/terminal/apple-touch-icon.png" },
-            { title: "Animaxxer", path: "animaxxer", iconUrl: "https://76836.github.io/animaxxer/icon-512.png"},
-            { title: "CtrlBox", path: "ctrlbox", iconUrl: "https://76836.github.io/ctrlbox/icon.png" },
-            { title: "Calculator", path: "CalculatorXP", iconUrl: "https://76836.github.io/CalculatorXP/icon.png" },
-            { title: "Concentrate", path: "Concentrate" },
-            { title: "Tenkord", path: "Tenkord" },
-            { title: "Mukumi", path: "Mukumi" },
-            { title: "VerbatimFx", path: "VerbatimFx" },
-            { title: "Wanderer", path: "Wanderer" },
-            { title: "meatsalad", path: "meatsalad" },
-            { title: "Squares", path: "squares" },
-            { title: "gguf-studio", path: "gguf-studio" },
-            { title: "Infinite Simulation", path: "InfiniteSimulation" },
-            { title: "QX", path: "QX" },
-            { title: "XR", path: "XR" },
-            { title: "AppCenter", path: "AppCenter", iconUrl: "https://76836.github.io/AppCenter/apple-touch-icon.png" },
-            { title: "Simple AI", path: "FREE_AI.html" },
-            { title: "Image Studio", path: "pollinations_image_client.html" },
-            { title: "Batteries", path: "batteries.html" },
-            { title: "llamafile builder", path: "llamafile-builder.html" },
-            { title: "Firefox", path: "https://76836.github.io/firefox-wasm/?mode=polished", iconUrl: "https://76836.github.io/firefox-wasm/assets/firefox-icon.png" },
-            { title: "Games Launcher", path: "launcher", iconUrl: "https://76836.github.io/favicon.ico" }
+            { title: "Akari", path: "Akari/app", iconUrl: BASE_URL + "Akari/images/logo512.png", category: "Assistant", developer: "76836" },
+            { title: "Digita", path: "Digita", iconUrl: BASE_URL + "Digita/logo/512.png", category: "AI", developer: "76836" },
+            { title: "Lunabot", path: "lunabot/app", iconUrl: BASE_URL + "lunabot/app/icon-512.png", category: "Chat", developer: "76836" },
+            { title: "Animaxxer", path: "animaxxer", iconUrl: BASE_URL + "animaxxer/icon-512.png", category: "Entertainment", developer: "76836" },
+            { title: "Firefox", path: "firefox-wasm/?mode=polished", iconUrl: BASE_URL + "firefox-wasm/assets/firefox-icon.png", category: "Browser", developer: "76836" },
+            { title: "Games Launcher", path: "launcher", iconUrl: FALLBACK_ICON, category: "Games", developer: "76836" },
+            { title: "Terminal", path: "webdesk/programs/terminal", iconUrl: BASE_URL + "webdesk/programs/terminal/apple-touch-icon.png", category: "System", developer: "76836" },
+            { title: "Calculator", path: "CalculatorXP", iconUrl: BASE_URL + "CalculatorXP/icon-512.png", category: "Tools", developer: "76836" },
+            { title: "CtrlBox", path: "ctrlbox", iconUrl: BASE_URL + "ctrlbox/apple-touch-icon.png", category: "Tools", developer: "76836" },
+            { title: "Concentrate", path: "Concentrate", iconUrl: BASE_URL + "Concentrate/icon.png", category: "Productivity", developer: "76836" },
+            { title: "Tenkord", path: "Tenkord", iconUrl: BASE_URL + "Tenkord/icon-512.png", category: "Productivity", developer: "76836" },
+            { title: "Mukumi", path: "Mukumi", iconUrl: BASE_URL + "Mukumi/icon-512.png", category: "Apps", developer: "76836" },
+            { title: "VerbatimFx", path: "VerbatimFx", iconUrl: BASE_URL + "VerbatimFx/icon-512.png", category: "Audio", developer: "76836" },
+            { title: "Wanderer", path: "Wanderer", iconUrl: BASE_URL + "Wanderer/path1.png", category: "Games", developer: "76836" },
+            { title: "meatsalad", path: "meatsalad", iconUrl: BASE_URL + "meatsalad/meatsalad.jpg", category: "Food", developer: "76836" },
+            { title: "Squares", path: "squares.html", iconUrl: FALLBACK_ICON, category: "Wallpaper", developer: "76836" },
+            { title: "side-glow", path: "side-glow", iconUrl: FALLBACK_ICON, category: "Display", developer: "76836" },
+            { title: "gguf-studio", path: "gguf-studio", iconUrl: FALLBACK_ICON, category: "AI", developer: "76836" },
+            { title: "Infinite Simulation", path: "InfiniteSimulation", iconUrl: BASE_URL + "InfiniteSimulation/images/icon.png", category: "Simulation", developer: "76836" },
+            { title: "XR", path: "XR", iconUrl: FALLBACK_ICON, category: "VR", developer: "76836" },
+            { title: "AppCenter", path: "AppCenter", iconUrl: BASE_URL + "AppCenter/icon-512.png", category: "Store", developer: "76836" },
+            { title: "Simple AI", path: "FREE_AI.html", iconUrl: FALLBACK_ICON, category: "AI", developer: "76836" },
+            { title: "Image Studio", path: "pollinations_image_client.html", iconUrl: FALLBACK_ICON, category: "Creative", developer: "76836" },
+            { title: "Batteries", path: "batteries.html", iconUrl: FALLBACK_ICON, category: "Tools", developer: "76836" },
+            { title: "llamafile builder", path: "llamafile-builder.html", iconUrl: FALLBACK_ICON, category: "AI", developer: "76836" }
         ];
 
-        window.onload = loadApps;
-
-        function createApp(title, url, icon) {
-            const t = title || document.getElementById('appTitle').value;
-            const u = url || document.getElementById('appUrl').value;
-            const i = icon || document.getElementById('iconUrl').value;
-
-            if (!t || !u) return alert("Title and URL required");
-
-            const appId = 'webapp-' + t.toLowerCase().replace(/[^a-z0-9]/g, '-');
-            const app = {
-                id: appId,
-                config: { title: t, url: u, iconUrl: i || `${u}/apple-touch-icon.png`, useIframe: true }
-            };
-
-            const apps = getStored();
-            if (!apps.find(a => a.id === appId)) apps.push(app);
-            
-            localStorage.setItem('WebDesk_custom_apps', JSON.stringify(apps));
-            window.parent.postMessage({ type: 'registerApp', app }, '*');
-            loadApps();
-        }
-
-      function loadApps() {
-    const installed = getStored();
-    const installedIds = installed.map(a => a.id);
-    
-    const instContainer = document.getElementById('installedApps');
-    instContainer.innerHTML = '';
-    installed.forEach(app => {
-        instContainer.appendChild(createAppRow(app, true));
-    });
-
-    const markContainer = document.getElementById('marketplaceApps');
-    markContainer.innerHTML = '';
-    catalog.forEach(item => {
-        const fullUrl = /^https?:\/\//i.test(item.path) ? item.path : (BASE_URL + item.path);
-        const id = 'webapp-' + item.title.toLowerCase().replace(/[^a-z0-9]/g, '-');
-        
-        // Use custom iconUrl if provided, otherwise fallback to default path
-        const resolvedIcon = item.iconUrl || `${fullUrl}/apple-touch-icon.png`;
-
-        if (!installedIds.includes(id)) {
-            markContainer.appendChild(createAppRow({
-                id: id,
-                config: { title: item.title, url: fullUrl, iconUrl: resolvedIcon }
-            }, false));
-        }
-    });
-}
-
-        function createAppRow(app, isInstalled) {
-            const div = document.createElement('div');
-            div.className = 'app-item';
-            const icon = app.config.iconUrl;
-            
-            div.innerHTML = `
-                <div class="app-icon" style="background-color:hsl(${app.config.title.length * 40}, 60%, 80%)">
-                    <img src="${icon}" class="app-icon" onerror="this.style.display='none'; this.parentElement.innerText='${app.config.title[0]}'">
-                </div>
-                <div class="app-details">
-                    <div class="app-title">${app.config.title}</div>
-                    <div class="app-url">${app.config.url}</div>
-                </div>
-                <button class="btn ${isInstalled ? 'btn-danger' : 'btn-primary'}" 
-                    onclick="${isInstalled ? `deleteApp('${app.id}')` : `createApp('${app.config.title}', '${app.config.url}', '${app.config.iconUrl}')`}">
-                    ${isInstalled ? 'Uninstall' : 'Install'}
-                </button>
-            `;
-            return div;
-        }
-
-        function deleteApp(appId) {
-            const apps = getStored().filter(a => a.id !== appId);
-            localStorage.setItem('WebDesk_custom_apps', JSON.stringify(apps));
-            window.parent.postMessage({ type: 'unregisterApp', appId }, '*');
-            loadApps();
-        }
+        let filterMode = "all";
+        let searchQuery = "";
 
         function getStored() {
-            return JSON.parse(localStorage.getItem('WebDesk_custom_apps') || '[]');
+            try {
+                return JSON.parse(localStorage.getItem("WebDesk_custom_apps") || "[]");
+            } catch (_) {
+                return [];
+            }
         }
+
+        function saveStored(apps) {
+            localStorage.setItem("WebDesk_custom_apps", JSON.stringify(apps));
+        }
+
+        function appIdFromTitle(title) {
+            return "webapp-" + String(title).toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        }
+
+        function resolveUrl(path) {
+            if (/^https?:\/\//i.test(path)) return path;
+            return BASE_URL + path.replace(/^\//, "");
+        }
+
+        function createApp(title, url, icon) {
+            const t = title || document.getElementById("appTitle").value.trim();
+            const u = url || document.getElementById("appUrl").value.trim();
+            const i = icon || document.getElementById("iconUrl").value.trim();
+            if (!t || !u) {
+                alert("Title and URL required");
+                return;
+            }
+            const id = appIdFromTitle(t);
+            const app = {
+                id,
+                config: {
+                    title: t,
+                    url: u,
+                    iconUrl: i || FALLBACK_ICON,
+                    useIframe: true
+                }
+            };
+            const apps = getStored();
+            if (!apps.find((a) => a.id === id)) apps.push(app);
+            saveStored(apps);
+            try {
+                window.parent.postMessage({ type: "registerApp", app }, "*");
+            } catch (_) {}
+            render();
+        }
+
+        function uninstall(appId) {
+            const apps = getStored().filter((a) => a.id !== appId);
+            saveStored(apps);
+            try {
+                window.parent.postMessage({ type: "unregisterApp", appId }, "*");
+            } catch (_) {}
+            render();
+        }
+
+        function installCatalogItem(item) {
+            createApp(item.title, resolveUrl(item.path), item.iconUrl || FALLBACK_ICON);
+        }
+
+        function cardHtml(entry, isInstalled) {
+            const title = entry.title || entry.config?.title || "?";
+            const icon = entry.iconUrl || entry.config?.iconUrl || FALLBACK_ICON;
+            const dev = entry.developer || "76836";
+            const cat = entry.category || "App";
+            const id = entry.id || appIdFromTitle(title);
+            const letter = (title[0] || "?").toUpperCase();
+
+            const actions = isInstalled
+                ? `<button type="button" class="btn btn-danger" data-uninstall="${id}">Remove</button>`
+                : `<button type="button" class="btn btn-primary" data-install="${id}">Install</button>`;
+
+            return `
+            <article class="app-card" data-id="${id}">
+                <div class="app-icon-wrap" data-letter="${letter}">
+                    <img src="${icon}" alt="" loading="lazy"
+                         onerror="this.remove(); this.parentElement.textContent=this.parentElement.dataset.letter;">
+                </div>
+                <div class="app-meta">
+                    <h3 class="app-title">${title.replace(/</g, "&lt;")}</h3>
+                    <p class="app-dev">${dev}</p>
+                    <span class="app-cat">${cat}</span>
+                    <div class="app-actions">${actions}</div>
+                </div>
+            </article>`;
+        }
+
+        function render() {
+            const installed = getStored();
+            const installedIds = new Set(installed.map((a) => a.id));
+            const q = searchQuery.trim().toLowerCase();
+
+            const catalogEntries = catalog.map((item) => ({
+                ...item,
+                id: appIdFromTitle(item.title),
+                fullUrl: resolveUrl(item.path),
+                isInstalled: installedIds.has(appIdFromTitle(item.title))
+            }));
+
+            // Installed custom apps not in catalog
+            const catalogIds = new Set(catalogEntries.map((c) => c.id));
+            const customInstalled = installed
+                .filter((a) => !catalogIds.has(a.id))
+                .map((a) => ({
+                    id: a.id,
+                    title: a.config?.title || a.id,
+                    iconUrl: a.config?.iconUrl || FALLBACK_ICON,
+                    developer: "Custom",
+                    category: "Custom",
+                    isInstalled: true,
+                    config: a.config
+                }));
+
+            let list = [];
+            if (filterMode === "installed") {
+                list = [
+                    ...catalogEntries.filter((c) => c.isInstalled),
+                    ...customInstalled
+                ];
+            } else if (filterMode === "available") {
+                list = catalogEntries.filter((c) => !c.isInstalled);
+            } else {
+                list = [
+                    ...catalogEntries,
+                    ...customInstalled
+                ];
+            }
+
+            if (q) {
+                list = list.filter((a) => {
+                    const hay = [a.title, a.category, a.developer, a.path].filter(Boolean).join(" ").toLowerCase();
+                    return hay.includes(q);
+                });
+            }
+
+            const grid = document.getElementById("appGrid");
+            const label = document.getElementById("sectionLabel");
+            label.textContent =
+                filterMode === "installed" ? "Installed" :
+                filterMode === "available" ? "Available to install" : "Catalog";
+
+            if (!list.length) {
+                grid.innerHTML = `<div class="empty">No apps match.</div>`;
+                return;
+            }
+
+            grid.innerHTML = list
+                .map((a) => cardHtml(a, !!a.isInstalled))
+                .join("");
+
+            grid.querySelectorAll("[data-install]").forEach((btn) => {
+                btn.addEventListener("click", () => {
+                    const id = btn.getAttribute("data-install");
+                    const item = catalog.find((c) => appIdFromTitle(c.title) === id);
+                    if (item) installCatalogItem(item);
+                });
+            });
+            grid.querySelectorAll("[data-uninstall]").forEach((btn) => {
+                btn.addEventListener("click", () => uninstall(btn.getAttribute("data-uninstall")));
+            });
+        }
+
+        document.getElementById("searchInput").addEventListener("input", (e) => {
+            searchQuery = e.target.value;
+            render();
+        });
+
+        document.getElementById("tabs").addEventListener("click", (e) => {
+            const tab = e.target.closest(".tab");
+            if (!tab) return;
+            document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+            tab.classList.add("active");
+            filterMode = tab.dataset.filter || "all";
+            render();
+        });
+
+        document.getElementById("btnAddCustom").addEventListener("click", () => createApp());
+
+        window.onload = render;
     </script>
 </body>
-
 </html>
