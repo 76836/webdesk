@@ -314,13 +314,13 @@
 
         // Verified live paths + icons (crawled Oct 2026). Dead entries removed.
         const catalog = [
+            // Real installable 76836 apps only (paths verified live).
             { title: "Akari", path: "Akari/app", iconUrl: BASE_URL + "Akari/images/logo512.png", category: "Assistant", developer: "76836" },
             { title: "Digita", path: "Digita", iconUrl: BASE_URL + "Digita/logo/512.png", category: "AI", developer: "76836" },
             { title: "Lunabot", path: "lunabot/app", iconUrl: BASE_URL + "lunabot/app/icon-512.png", category: "Chat", developer: "76836" },
             { title: "Animaxxer", path: "animaxxer", iconUrl: BASE_URL + "animaxxer/icon-512.png", category: "Entertainment", developer: "76836" },
             { title: "Firefox", path: "firefox-wasm/?mode=polished", iconUrl: BASE_URL + "firefox-wasm/assets/firefox-icon.png", category: "Browser", developer: "76836" },
-            { title: "Games Launcher", path: "launcher", iconUrl: FALLBACK_ICON, category: "Games", developer: "76836" },
-            { title: "Terminal", path: "webdesk/programs/terminal", iconUrl: BASE_URL + "webdesk/programs/terminal/apple-touch-icon.png", category: "System", developer: "76836" },
+            { title: "Games Launcher", path: "games", iconUrl: "https://76836.github.io/webdesk/v4/apps/icons/games-launcher.svg", category: "Games", developer: "76836", gamesMode: true },
             { title: "Calculator", path: "CalculatorXP", iconUrl: BASE_URL + "CalculatorXP/icon-512.png", category: "Tools", developer: "76836" },
             { title: "CtrlBox", path: "ctrlbox", iconUrl: BASE_URL + "ctrlbox/apple-touch-icon.png", category: "Tools", developer: "76836" },
             { title: "Concentrate", path: "Concentrate", iconUrl: BASE_URL + "Concentrate/icon.png", category: "Productivity", developer: "76836" },
@@ -333,9 +333,6 @@
             { title: "side-glow", path: "side-glow", iconUrl: FALLBACK_ICON, category: "Display", developer: "76836" },
             { title: "gguf-studio", path: "gguf-studio", iconUrl: FALLBACK_ICON, category: "AI", developer: "76836" },
             { title: "Infinite Simulation", path: "InfiniteSimulation", iconUrl: BASE_URL + "InfiniteSimulation/images/icon.png", category: "Simulation", developer: "76836" },
-            { title: "XR", path: "XR", iconUrl: FALLBACK_ICON, category: "VR", developer: "76836" },
-            { title: "AppCenter", path: "AppCenter", iconUrl: BASE_URL + "AppCenter/icon-512.png", category: "Store", developer: "76836" },
-            { title: "Simple AI", path: "FREE_AI.html", iconUrl: FALLBACK_ICON, category: "AI", developer: "76836" },
             { title: "Image Studio", path: "pollinations_image_client.html", iconUrl: FALLBACK_ICON, category: "Creative", developer: "76836" },
             { title: "Batteries", path: "batteries.html", iconUrl: FALLBACK_ICON, category: "Tools", developer: "76836" },
             { title: "llamafile builder", path: "llamafile-builder.html", iconUrl: FALLBACK_ICON, category: "AI", developer: "76836" }
@@ -365,7 +362,7 @@
             return BASE_URL + path.replace(/^\//, "");
         }
 
-        function createApp(title, url, icon) {
+        function createApp(title, url, icon, extra) {
             const t = title || document.getElementById("appTitle").value.trim();
             const u = url || document.getElementById("appUrl").value.trim();
             const i = icon || document.getElementById("iconUrl").value.trim();
@@ -380,7 +377,8 @@
                     title: t,
                     url: u,
                     iconUrl: i || FALLBACK_ICON,
-                    useIframe: true
+                    useIframe: true,
+                    ...(extra || {})
                 }
             };
             const apps = getStored();
@@ -402,7 +400,9 @@
         }
 
         function installCatalogItem(item) {
-            createApp(item.title, resolveUrl(item.path), item.iconUrl || FALLBACK_ICON);
+            const extra = {};
+            if (item.gamesMode) extra.gamesMode = true;
+            createApp(item.title, resolveUrl(item.path), item.iconUrl || FALLBACK_ICON, extra);
         }
 
         function cardHtml(entry, isInstalled) {
