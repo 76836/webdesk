@@ -82,6 +82,7 @@
     #splash-screen.fade-out {
       opacity: 0;
       visibility: hidden;
+      transition: opacity 0.18s ease, visibility 0.18s ease;
     }
   </style>
 </head>
@@ -187,11 +188,11 @@
     // 1. Loading Screen Logic
     window.addEventListener('load', () => {
       const splash = document.getElementById('splash-screen');
-      setTimeout(() => {
+      // Short fade only — no artificial multi-second boot delay
+      requestAnimationFrame(() => {
         splash.classList.add('fade-out');
-        // Remove from DOM after transition so it doesn't block clicks
-        setTimeout(() => splash.remove(), 200);
-      }, 5000);
+        setTimeout(() => splash.remove(), 180);
+      });
     });
 
     // 2. Fullscreen Logic
