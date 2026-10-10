@@ -143,7 +143,8 @@ class WindowManager {
             taskbarIcon,
             state: 'open',
             isMaximized: false,
-            oldRect: null
+            oldRect: null,
+            config
         });
 
         this.setupWindowEvents(id);
@@ -271,12 +272,91 @@ class WindowManager {
         }
     }
 
+
+    isGamesApp(id) {
+        const win = this.openWindows.get(id);
+        if (!win) return false;
+        const cfg = win.config || {};
+        if (cfg.gamesMode) return true;
+        const url = String(cfg.url || '');
+        const title = String(cfg.title || '').toLowerCase();
+        if (title.includes('games launcher') || title === 'games') return true;
+        if (/76836\.github\.io\/games\/?(\?|$)/i.test(url)) return true;
+        return false;
+    }
+
+    startGamesFps(id) {
+        const win = this.openWindows.get(id);
+        if (!win || win._fpsRaf) return;
+        const label = win.element.querySelector('.games-fps');
+        if (!label) return;
+        let frames = 0;
+        let last = performance.now();
+        const tick = (now) => {
+            frames++;
+            if (now - last >= 500) {
+                const fps = Math.round((frames * 1000) / (now - last));
+                label.textContent = fps + ' FPS';
+                frames = 0;
+                last = now;
+            }
+            win._fpsRaf = requestAnimationFrame(tick);
+        };
+        win._fpsRaf = requestAnimationFrame(tick);
+    }
+
+    stopGamesFps(id) {
+        const win = this.openWindows.get(id);
+        if (!win) return;
+        if (win._fpsRaf) {
+            cancelAnimationFrame(win._fpsRaf);
+            win._fpsRaf = null;
+        }
+    }
+
+    applyGamesMode(id, on) {
+        const win = this.openWindows.get(id);
+        if (!win || !this.isGamesApp(id)) return;
+        const el = win.element;
+        const desktop = document.querySelector('.os-desktop');
+        if (on) {
+            el.classList.add('games-mode');
+            document.body.classList.add('webdesk-games-mode');
+            if (desktop) desktop.classList.add('webdesk-games-mode');
+            let fps = el.querySelector('.games-fps');
+            if (!fps) {
+                const controls = el.querySelector('.window-controls');
+                if (controls) {
+                    fps = document.createElement('span');
+                    fps.className = 'games-fps';
+                    fps.title = 'Frames per second';
+                    fps.textContent = '— FPS';
+                    controls.insertBefore(fps, controls.firstChild);
+                }
+            }
+            this.startGamesFps(id);
+        } else {
+            el.classList.remove('games-mode');
+            this.stopGamesFps(id);
+            let any = false;
+            this.openWindows.forEach((w) => {
+                if (w.element.classList.contains('games-mode')) any = true;
+            });
+            if (!any) {
+                document.body.classList.remove('webdesk-games-mode');
+                if (desktop) desktop.classList.remove('webdesk-games-mode');
+            }
+        }
+    }
+
     toggleMaximize(id) {
         const win = this.openWindows.get(id);
         if (!win) return;
         if (win.isMaximized) {
-            Object.assign(win.element.style, win.oldRect);
+            Object.assign(win.element.style, win.oldRect || {});
             win.isMaximized = false;
+            win.element.classList.remove('maximized');
+            this.applyGamesMode(id, false);
         } else {
             win.oldRect = {
                 width: win.element.style.width,
@@ -284,13 +364,16 @@ class WindowManager {
                 left: win.element.style.left,
                 top: win.element.style.top
             };
+            const games = this.isGamesApp(id);
             Object.assign(win.element.style, {
                 width: '100vw',
-                height: 'calc(100vh - 48px)',
+                height: games ? '100vh' : 'calc(100vh - 48px)',
                 left: '0',
                 top: '0'
             });
             win.isMaximized = true;
+            win.element.classList.add('maximized');
+            this.applyGamesMode(id, games);
         }
     }
 
@@ -314,6 +397,9 @@ class WindowManager {
     closeWindow(id) {
         const win = this.openWindows.get(id);
         if (!win) return;
+        this.applyGamesMode(id, false);
+        this.stopGamesFps(id);
+        win.element.classList.remove('games-mode', 'maximized');
         const iframes = win.element.querySelectorAll('iframe');
         iframes.forEach(iframe => {
             iframe.src = 'about:blank';
