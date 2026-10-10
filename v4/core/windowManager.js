@@ -127,7 +127,15 @@ class WindowManager {
 
         const content = windowEl.querySelector('.app-content');
         const iframe = document.createElement('iframe');
-        iframe.src = config.url;
+        let launchUrl = config.url;
+        try {
+            const u = new URL(String(launchUrl), window.location.href);
+            if (u.hostname === '76836.github.io' && /\/games\/?$/i.test(u.pathname)) {
+                u.searchParams.set('embed', 'true');
+                launchUrl = u.toString();
+            }
+        } catch (_) {}
+        iframe.src = launchUrl;
         iframe.frameBorder = '0';
         iframe.width = '100%';
         iframe.height = '100%';
