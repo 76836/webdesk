@@ -58,6 +58,17 @@
 
             <section class="tab-content" data-tab="system">
                 <h2>System</h2>
+
+                <div class="settings-card" id="system-info-card">
+                    <h3 style="margin:0 0 8px;font-size:15px;">System info</h3>
+                    <p class="muted" style="margin-bottom:10px;">This WebDesk build and runtime environment.</p>
+                    <div id="system-info-rows" style="display:grid;gap:8px;font-size:13px;"></div>
+                    <div class="upload-row" style="margin-top:12px;">
+                        <button class="btn" id="refresh-system-info" type="button">Refresh</button>
+                        <button class="btn" id="copy-system-info" type="button">Copy</button>
+                    </div>
+                </div>
+
                 <div class="settings-card">
                     <h3 style="margin:0 0 8px;font-size:15px;">Cross-origin isolation</h3>
                     <p class="muted">Enables SharedArrayBuffer for WebDesk and same-origin apps (Firefox WASM, etc.). Registers the site-root worker /enable-threads.js with scope / so isolation is not limited to /webdesk/.</p>
@@ -260,6 +271,103 @@
                     window.parent.location.reload();
                 }
             });
+
+            
+            function row(label, value) {
+                return `<div style="display:flex;gap:12px;justify-content:space-between;flex-wrap:wrap;border-bottom:1px solid rgba(255,255,255,0.08);padding:6px 0;">
+                    <span class="muted">${label}</span>
+                    <span style="text-align:right;word-break:break-all;max-width:70%;font-family:ui-monospace,monospace;font-size:12px;">${value}</span>
+                </div>`;
+            }
+
+            async function renderSystemInfo() {
+                const host = document.getElementById('system-info-rows');
+                if (!host) return;
+                host.innerHTML = row('Status', 'Loading…');
+
+                const p = window.parent;
+                let build = {};
+                try { build = p.__WEBDESK_BUILD__ || {}; } catch (_) {}
+
+                let latest = null;
+                try {
+                    const res = await fetch('https://api.github.com/repos/76836/webdesk/commits/main');
+                    if (res.ok) latest = await res.json();
+                } catch (_) {}
+
+                let lines = [];
+                const short = build.short || (build.commit || '').slice(0, 8) || 'unknown';
+                lines.push(row('WebDesk build', short));
+                if (build.commit) {
+                    lines.push(row('Commit', `<a href="https://github.com/76836/webdesk/commit/${build.commit}" target="_blank" rel="noopener" style="color:#25ffff;">${build.commit.slice(0,12)}…</a>`));
+                }
+                lines.push(row('Branch', build.branch || 'main'));
+                lines.push(row('Repo', build.repo || '76836/webdesk'));
+                if (build.message) lines.push(row('Commit message', build.message.replace(/</g,'&lt;')));
+                if (build.builtAt) lines.push(row('Commit time', build.builtAt));
+
+                if (latest && latest.sha) {
+                    const latestShort = latest.sha.slice(0, 8);
+                    const match = build.commit && latest.sha.startsWith(build.commit.slice(0, 8)) || (build.short === latestShort);
+                    // better: compare full or prefixes
+                    const upToDate = build.commit && latest.sha.startsWith(build.commit.slice(0, 7));
+                    const upToDate2 = build.commit && latest.sha === build.commit;
+                    const ok = upToDate2 || (build.short && latestShort === build.short);
+                    lines.push(row('GitHub main', latestShort + (ok ? ' (matches this build)' : ' (newer available — hard refresh)')));
+                }
+
+                try {
+                    lines.push(row('Page URL', p.location.href.replace(/</g,'&lt;')));
+                } catch (_) {
+                    lines.push(row('Page URL', location.href));
+                }
+                try {
+                    lines.push(row('crossOriginIsolated', String(!!p.crossOriginIsolated)));
+                } catch (_) {
+                    lines.push(row('crossOriginIsolated', String(!!window.crossOriginIsolated)));
+                }
+                lines.push(row('Online', String(navigator.onLine)));
+                lines.push(row('Language', navigator.language || '—'));
+                lines.push(row('Platform', navigator.platform || '—'));
+                lines.push(row('Cores', String(navigator.hardwareConcurrency || '—')));
+                if (navigator.deviceMemory) lines.push(row('Device memory (GB)', String(navigator.deviceMemory)));
+                lines.push(row('Viewport', `${window.innerWidth}×${window.innerHeight}`));
+                try {
+                    lines.push(row('Parent viewport', `${p.innerWidth}×${p.innerHeight}`));
+                } catch (_) {}
+                lines.push(row('Timezone', Intl.DateTimeFormat().resolvedOptions().timeZone || '—'));
+                lines.push(row('User agent', (navigator.userAgent || '—').replace(/</g,'&lt;')));
+
+                let appCount = 0;
+                try {
+                    const raw = p.localStorage.getItem('WebDesk_custom_apps');
+                    appCount = raw ? JSON.parse(raw).length : 0;
+                } catch (_) {}
+                lines.push(row('Installed custom apps', String(appCount)));
+
+                host.innerHTML = lines.join('');
+                host.dataset.copyText = lines.map(l => {
+                    const tmp = document.createElement('div');
+                    tmp.innerHTML = l;
+                    const spans = tmp.querySelectorAll('span');
+                    if (spans.length >= 2) return spans[0].textContent + ': ' + spans[1].textContent;
+                    return tmp.textContent;
+                }).join('\n');
+            }
+
+            document.getElementById('refresh-system-info')?.addEventListener('click', () => renderSystemInfo());
+            document.getElementById('copy-system-info')?.addEventListener('click', async () => {
+                const host = document.getElementById('system-info-rows');
+                const text = host?.dataset.copyText || host?.innerText || '';
+                try {
+                    await navigator.clipboard.writeText(text);
+                    const btn = document.getElementById('copy-system-info');
+                    if (btn) { const t = btn.textContent; btn.textContent = 'Copied'; setTimeout(() => btn.textContent = t, 1200); }
+                } catch (_) {
+                    alert('Copy failed');
+                }
+            });
+            renderSystemInfo();
 
             document.getElementById('open-appcenter').addEventListener('click', () => {
                 window.parent.postMessage({ type: 'registerApp', app: { id: 'appmaker', config: { title: 'AppCenter', url: './apps/appmaker', pinned: true } } }, '*');
