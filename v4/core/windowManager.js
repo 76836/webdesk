@@ -333,7 +333,7 @@ class WindowManager {
         const win = this.openWindows.get(id);
         if (!win) return;
         this.stopGamesFps(id);
-        win.element.querySelectorAll('.games-fps, .games-menu-btn, .games-menu').forEach((n) => n.remove());
+        win.element.querySelectorAll('.games-fps, .games-menu-btn, .games-menu, .games-confirm').forEach((n) => n.remove());
     }
 
     closeOtherWindows(exceptId) {
@@ -365,6 +365,51 @@ class WindowManager {
             }
         }
         result.textContent = lines.join(' · ');
+    }
+
+    showGamesConfirm(hostEl, { title, body, confirmLabel = 'Confirm', cancelLabel = 'Cancel' }) {
+        return new Promise((resolve) => {
+            const existing = hostEl.querySelector('.games-confirm');
+            if (existing) existing.remove();
+
+            const wrap = document.createElement('div');
+            wrap.className = 'games-confirm';
+            wrap.innerHTML = `
+                <div class="games-confirm-card" role="dialog" aria-modal="true">
+                    <div class="games-confirm-title"></div>
+                    <div class="games-confirm-body"></div>
+                    <div class="games-confirm-actions">
+                        <button type="button" class="games-confirm-btn games-confirm-cancel"></button>
+                        <button type="button" class="games-confirm-btn games-confirm-ok"></button>
+                    </div>
+                </div>
+            `;
+            wrap.querySelector('.games-confirm-title').textContent = title;
+            wrap.querySelector('.games-confirm-body').textContent = body;
+            wrap.querySelector('.games-confirm-cancel').textContent = cancelLabel;
+            wrap.querySelector('.games-confirm-ok').textContent = confirmLabel;
+
+            const finish = (val) => {
+                wrap.remove();
+                resolve(val);
+            };
+            wrap.querySelector('.games-confirm-cancel').onclick = (e) => {
+                e.stopPropagation();
+                finish(false);
+            };
+            wrap.querySelector('.games-confirm-ok').onclick = (e) => {
+                e.stopPropagation();
+                finish(true);
+            };
+            wrap.addEventListener('pointerdown', (e) => {
+                if (e.target === wrap) {
+                    e.stopPropagation();
+                    finish(false);
+                }
+            });
+            hostEl.appendChild(wrap);
+            wrap.querySelector('.games-confirm-ok').focus();
+        });
     }
 
     ensureGamesMenu(id) {
@@ -482,17 +527,21 @@ class WindowManager {
             if (pr) pr.hidden = false;
             this.runPingTest(menu);
         };
-        menu.querySelector('[data-action="quit"]').onclick = (e) => {
+        menu.querySelector('[data-action="quit"]').onclick = async (e) => {
             e.stopPropagation();
-            const ok = window.confirm(
-                'Quit game and return to the Games Launcher?\n\nUnsaved progress in the current game may be lost.'
-            );
+            closeMenu();
+            const ok = await this.showGamesConfirm(win.element, {
+                title: 'Quit game?',
+                body: 'Return to the Games Launcher? Unsaved progress in the current game may be lost.',
+                confirmLabel: 'Quit',
+                cancelLabel: 'Stay'
+            });
             if (!ok) return;
             const iframe = win.element.querySelector('iframe');
             const home = (win.config && win.config.url) || 'https://76836.github.io/games';
             if (iframe) iframe.src = home;
-            closeMenu();
         };
+
 
         const onDoc = (ev) => {
             if (!win.element.classList.contains('games-mode')) {
