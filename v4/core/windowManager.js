@@ -155,9 +155,16 @@ class WindowManager {
         const win = this.openWindows.get(id);
         const el = win.element;
 
-        el.querySelector('.minimize').onclick = (e) => { e.stopPropagation(); this.minimizeWindow(id); };
-        el.querySelector('.maximize').onclick = (e) => { e.stopPropagation(); this.toggleMaximize(id); };
-        el.querySelector('.close').onclick = (e) => { e.stopPropagation(); this.closeWindow(id); };
+        const bindCtrl = (sel, fn) => {
+            const node = el.querySelector(sel);
+            if (!node) return;
+            const run = (e) => { e.preventDefault(); e.stopPropagation(); fn(); };
+            node.addEventListener('pointerup', run);
+            node.addEventListener('click', run);
+        };
+        bindCtrl('.minimize', () => this.minimizeWindow(id));
+        bindCtrl('.maximize', () => this.toggleMaximize(id));
+        bindCtrl('.close', () => this.closeWindow(id));
         win.taskbarIcon.oncontextmenu = (event) => {
             event.preventDefault();
             if (window.showAppContextMenu) {
@@ -431,15 +438,19 @@ class WindowManager {
             else closeMenu();
         };
 
-        // Pointer + touch + click — touchscreens often skip reliable click on spans
+        // ONE activation path only. pointerup+click+touchend together toggled open then closed.
+        let lastToggleAt = 0;
         const onBtnActivate = (e) => {
             e.preventDefault();
             e.stopPropagation();
+            const now = performance.now();
+            if (now - lastToggleAt < 400) return;
+            lastToggleAt = now;
             toggleMenu();
         };
+        // pointerup covers mouse + most touch; preventDefault reduces synthetic click
         btn.addEventListener('pointerup', onBtnActivate);
         btn.addEventListener('click', onBtnActivate);
-        btn.addEventListener('touchend', onBtnActivate, { passive: false });
 
         const stopBubble = (e) => e.stopPropagation();
         btn.addEventListener('pointerdown', stopBubble);
