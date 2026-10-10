@@ -293,6 +293,10 @@ class WindowManager {
         let frames = 0;
         let last = performance.now();
         const tick = (now) => {
+            if (!win.element.classList.contains('games-mode')) {
+                win._fpsRaf = null;
+                return;
+            }
             frames++;
             if (now - last >= 500) {
                 const fps = Math.round((frames * 1000) / (now - last));
@@ -314,6 +318,121 @@ class WindowManager {
         }
     }
 
+    removeGamesChrome(id) {
+        const win = this.openWindows.get(id);
+        if (!win) return;
+        this.stopGamesFps(id);
+        win.element.querySelectorAll('.games-fps, .games-menu-btn, .games-menu').forEach((n) => n.remove());
+    }
+
+    closeOtherWindows(exceptId) {
+        const ids = [...this.openWindows.keys()];
+        ids.forEach((id) => {
+            if (id !== exceptId) this.closeWindow(id);
+        });
+    }
+
+    async runPingTest(menuEl) {
+        const result = menuEl.querySelector('.games-ping-result');
+        if (!result) return;
+        result.textContent = 'Pinging…';
+        const targets = [
+            { name: 'Cloudflare', url: 'https://www.cloudflare.com/cdn-cgi/trace' },
+            { name: 'GitHub', url: 'https://api.github.com' },
+        ];
+        const lines = [];
+        for (const t of targets) {
+            const t0 = performance.now();
+            try {
+                await fetch(t.url, { method: 'GET', mode: 'cors', cache: 'no-store' });
+                const ms = Math.round(performance.now() - t0);
+                lines.push(t.name + ': ' + ms + ' ms');
+            } catch (_) {
+                const ms = Math.round(performance.now() - t0);
+                // CORS/opaque may still give timing
+                lines.push(t.name + ': ~' + ms + ' ms (blocked/opaque)');
+            }
+        }
+        result.textContent = lines.join(' · ');
+    }
+
+    ensureGamesMenu(id) {
+        const win = this.openWindows.get(id);
+        if (!win) return;
+        const controls = win.element.querySelector('.window-controls');
+        if (!controls) return;
+
+        if (!controls.querySelector('.games-fps')) {
+            const fps = document.createElement('span');
+            fps.className = 'games-fps';
+            fps.title = 'Frames per second';
+            fps.textContent = '— FPS';
+            controls.insertBefore(fps, controls.firstChild);
+        }
+
+        if (!controls.querySelector('.games-menu-btn')) {
+            const btn = document.createElement('span');
+            btn.className = 'games-menu-btn';
+            btn.title = 'Game menu';
+            btn.setAttribute('role', 'button');
+            btn.textContent = '☰';
+            // Insert after fps, before window buttons
+            const fps = controls.querySelector('.games-fps');
+            if (fps && fps.nextSibling) controls.insertBefore(btn, fps.nextSibling);
+            else controls.insertBefore(btn, controls.firstChild);
+
+            const menu = document.createElement('div');
+            menu.className = 'games-menu';
+            menu.hidden = true;
+            menu.innerHTML = `
+                <button type="button" data-action="close-others">Close other windows</button>
+                <button type="button" data-action="fullscreen">Browser fullscreen</button>
+                <button type="button" data-action="ping">Internet ping test</button>
+                <div class="games-ping-result"></div>
+            `;
+            const titleBar = win.element.querySelector('.title-bar');
+            titleBar.style.position = titleBar.style.position || '';
+            titleBar.appendChild(menu);
+
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                menu.hidden = !menu.hidden;
+            });
+            menu.addEventListener('click', (e) => e.stopPropagation());
+
+            menu.querySelector('[data-action="close-others"]').onclick = () => {
+                this.closeOtherWindows(id);
+                menu.hidden = true;
+            };
+            menu.querySelector('[data-action="fullscreen"]').onclick = async () => {
+                try {
+                    if (!document.fullscreenElement) {
+                        await document.documentElement.requestFullscreen();
+                    } else {
+                        await document.exitFullscreen();
+                    }
+                } catch (err) {
+                    console.warn('fullscreen failed', err);
+                }
+                menu.hidden = true;
+            };
+            menu.querySelector('[data-action="ping"]').onclick = () => {
+                this.runPingTest(menu);
+            };
+
+            // Click outside closes menu
+            const onDoc = (ev) => {
+                if (!win.element.classList.contains('games-mode')) {
+                    document.removeEventListener('mousedown', onDoc);
+                    return;
+                }
+                if (!menu.contains(ev.target) && ev.target !== btn) menu.hidden = true;
+            };
+            document.addEventListener('mousedown', onDoc);
+            win._gamesMenuDocHandler = onDoc;
+        }
+    }
+
     applyGamesMode(id, on) {
         const win = this.openWindows.get(id);
         if (!win || !this.isGamesApp(id)) return;
@@ -323,21 +442,15 @@ class WindowManager {
             el.classList.add('games-mode');
             document.body.classList.add('webdesk-games-mode');
             if (desktop) desktop.classList.add('webdesk-games-mode');
-            let fps = el.querySelector('.games-fps');
-            if (!fps) {
-                const controls = el.querySelector('.window-controls');
-                if (controls) {
-                    fps = document.createElement('span');
-                    fps.className = 'games-fps';
-                    fps.title = 'Frames per second';
-                    fps.textContent = '— FPS';
-                    controls.insertBefore(fps, controls.firstChild);
-                }
-            }
+            this.ensureGamesMenu(id);
             this.startGamesFps(id);
         } else {
             el.classList.remove('games-mode');
-            this.stopGamesFps(id);
+            this.removeGamesChrome(id);
+            if (win._gamesMenuDocHandler) {
+                document.removeEventListener('mousedown', win._gamesMenuDocHandler);
+                win._gamesMenuDocHandler = null;
+            }
             let any = false;
             this.openWindows.forEach((w) => {
                 if (w.element.classList.contains('games-mode')) any = true;
