@@ -158,7 +158,17 @@ class WindowManager {
         const bindCtrl = (sel, fn) => {
             const node = el.querySelector(sel);
             if (!node) return;
-            const run = (e) => { e.preventDefault(); e.stopPropagation(); fn(); };
+            // pointerup + click both fire on many devices — debounce so maximize
+            // does not instantly toggle back.
+            let last = 0;
+            const run = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const now = performance.now();
+                if (now - last < 400) return;
+                last = now;
+                fn();
+            };
             node.addEventListener('pointerup', run);
             node.addEventListener('click', run);
         };
@@ -589,6 +599,9 @@ class WindowManager {
     toggleMaximize(id) {
         const win = this.openWindows.get(id);
         if (!win) return;
+        const now = performance.now();
+        if (win._maxToggleAt && now - win._maxToggleAt < 350) return;
+        win._maxToggleAt = now;
         if (win.isMaximized) {
             Object.assign(win.element.style, win.oldRect || {});
             win.isMaximized = false;
