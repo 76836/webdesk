@@ -1025,3 +1025,76 @@ body.webdesk-games-mode .shelf {
 .app-window.games-mode.maximized .app-content iframe {
     height: 100% !important;
 }
+
+
+/* In-game confirm — replaces window.confirm */
+.app-window.games-mode .games-confirm {
+    position: absolute;
+    inset: 0;
+    z-index: 10050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    pointer-events: auto;
+}
+
+.app-window.games-mode .games-confirm-card {
+    width: min(320px, calc(100vw - 32px));
+    padding: 18px 16px 14px;
+    border-radius: 16px;
+    background-color: rgba(55, 55, 55, 0.94);
+    border: 1px solid rgba(224, 224, 224, 0.35);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    color: #fff;
+}
+
+.app-window.games-mode .games-confirm-title {
+    font-size: 1rem;
+    font-weight: 650;
+    margin-bottom: 8px;
+}
+
+.app-window.games-mode .games-confirm-body {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: rgba(255, 255, 255, 0.82);
+    margin-bottom: 16px;
+}
+
+.app-window.games-mode .games-confirm-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.app-window.games-mode .games-confirm-btn {
+    appearance: none;
+    border: none;
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.app-window.games-mode .games-confirm-cancel {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+.app-window.games-mode .games-confirm-ok {
+    background: #e81123;
+    color: #fff;
+}
+
+.app-window.games-mode .games-confirm-cancel:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.app-window.games-mode .games-confirm-ok:hover {
+    filter: brightness(1.08);
+}
