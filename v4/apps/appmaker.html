@@ -319,9 +319,9 @@
             { title: "Digita", path: "Digita", iconUrl: BASE_URL + "Digita/logo/512.png", category: "AI", developer: "76836" },
             { title: "Lunabot", path: "lunabot/app", iconUrl: BASE_URL + "lunabot/app/icon-512.png", category: "Chat", developer: "76836" },
             { title: "Animaxxer", path: "animaxxer", iconUrl: BASE_URL + "animaxxer/icon-512.png", category: "Entertainment", developer: "76836" },
-            { title: "Firefox", path: "firefox-wasm/?mode=polished", iconUrl: BASE_URL + "firefox-wasm/assets/firefox-icon.png", category: "Browser", developer: "76836" },
+            { title: "Firefox", path: "firefox-wasm/?mode=polished", iconUrl: BASE_URL + "firefox-wasm/assets/firefox-icon.png", category: "Browser", developer: "76836", WDNative: true },
             { title: "Games Launcher", path: "games?embed=true", iconUrl: "https://76836.github.io/webdesk/v4/apps/icons/games-launcher.svg", category: "Games", developer: "76836", gamesMode: true },
-            { title: "Calculator", path: "CalculatorXP", iconUrl: BASE_URL + "CalculatorXP/icon.png", category: "Tools", developer: "76836" },
+            { title: "Calculator", path: "CalculatorXP", iconUrl: BASE_URL + "CalculatorXP/icon.png", category: "Tools", developer: "76836", WDNative: true },
             { title: "CtrlBox", path: "ctrlbox", iconUrl: BASE_URL + "ctrlbox/apple-touch-icon.png", category: "Tools", developer: "76836" },
             { title: "Concentrate", path: "Concentrate", iconUrl: BASE_URL + "Concentrate/icon.png", category: "Productivity", developer: "76836" },
             { title: "Tenkord", path: "Tenkord", iconUrl: BASE_URL + "Tenkord/icon-512.png", category: "Productivity", developer: "76836" },
@@ -402,6 +402,7 @@
         function installCatalogItem(item) {
             const extra = {};
             if (item.gamesMode) extra.gamesMode = true;
+            if (item.WDNative) extra.WDNative = true;
             createApp(item.title, resolveUrl(item.path), item.iconUrl || FALLBACK_ICON, extra);
         }
 
