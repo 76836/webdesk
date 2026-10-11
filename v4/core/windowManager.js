@@ -126,7 +126,12 @@ class WindowManager {
         });
 
         const content = windowEl.querySelector('.app-content');
-        const iframe = document.createElement('iframe');
+        content.style.display = 'flex';
+        content.style.flexDirection = 'column';
+        content.style.flex = '1';
+        content.style.minHeight = '0';
+        content.style.overflow = 'hidden';
+
         let launchUrl = config.url;
         try {
             const u = new URL(String(launchUrl), window.location.href);
@@ -135,13 +140,6 @@ class WindowManager {
                 launchUrl = u.toString();
             }
         } catch (_) {}
-        iframe.src = launchUrl;
-        iframe.frameBorder = '0';
-        iframe.width = '100%';
-        iframe.height = '100%';
-        iframe.style.flex = '1';
-        iframe.style.display = 'block';
-        content.appendChild(iframe);
 
         document.querySelector('.os-desktop').appendChild(windowEl);
 
@@ -152,11 +150,141 @@ class WindowManager {
             state: 'open',
             isMaximized: false,
             oldRect: null,
-            config
+            config,
+            native: !!(config.WDNative || config.wdNative)
         });
 
         this.setupWindowEvents(id);
         this.resizeManager.setupResizeHandlers(windowEl);
+
+        if (config.WDNative || config.wdNative) {
+            this.loadNativeApp(id, content, launchUrl).catch((err) => {
+                console.error('[WebDesk WDNative]', err);
+                content.innerHTML = '';
+                const errEl = document.createElement('div');
+                errEl.className = 'wd-native-error';
+                errEl.style.cssText = 'padding:16px;color:#ff8a80;font:14px system-ui;';
+                errEl.textContent = 'WDNative failed to load: ' + (err && err.message ? err.message : String(err));
+                content.appendChild(errEl);
+                // Fallback iframe so the app is still reachable
+                const iframe = document.createElement('iframe');
+                iframe.src = launchUrl;
+                iframe.frameBorder = '0';
+                iframe.style.cssText = 'flex:1;width:100%;height:100%;border:0;display:block;';
+                content.appendChild(iframe);
+            });
+        } else {
+            const iframe = document.createElement('iframe');
+            iframe.src = launchUrl;
+            iframe.frameBorder = '0';
+            iframe.width = '100%';
+            iframe.height = '100%';
+            iframe.style.flex = '1';
+            iframe.style.display = 'block';
+            iframe.style.border = '0';
+            content.appendChild(iframe);
+        }
+    }
+
+    absolutizeUrl(url, baseHref) {
+        if (!url) return url;
+        const t = String(url).trim();
+        if (!t || t.startsWith('data:') || t.startsWith('blob:') || t.startsWith('javascript:') || t.startsWith('#')) return t;
+        try { return new URL(t, baseHref).href; } catch (_) { return t; }
+    }
+
+    rewriteDocumentUrls(doc, baseHref) {
+        const attrs = [
+            ['src', 'script'], ['src', 'img'], ['src', 'audio'], ['src', 'video'], ['src', 'source'],
+            ['src', 'embed'], ['src', 'iframe'], ['href', 'link'], ['href', 'a'],
+            ['data', 'object'], ['poster', 'video']
+        ];
+        attrs.forEach(([attr, sel]) => {
+            doc.querySelectorAll(sel + '[' + attr + ']').forEach((el) => {
+                el.setAttribute(attr, this.absolutizeUrl(el.getAttribute(attr), baseHref));
+            });
+        });
+        doc.querySelectorAll('[srcset]').forEach((el) => {
+            const rewritten = el.getAttribute('srcset').split(',').map((part) => {
+                const bits = part.trim().split(/\s+/);
+                if (!bits[0]) return part;
+                bits[0] = this.absolutizeUrl(bits[0], baseHref);
+                return bits.join(' ');
+            }).join(', ');
+            el.setAttribute('srcset', rewritten);
+        });
+        // url(...) in inline style attributes
+        doc.querySelectorAll('[style]').forEach((el) => {
+            el.setAttribute('style', el.getAttribute('style').replace(/url\((['"]?)([^)'"]+)\1\)/gi, (_, q, u) => {
+                return 'url(' + q + this.absolutizeUrl(u, baseHref) + q + ')';
+            }));
+        });
+    }
+
+    async loadNativeApp(id, contentEl, url) {
+        contentEl.innerHTML = '';
+        const loading = document.createElement('div');
+        loading.className = 'wd-native-loading';
+        loading.style.cssText = 'padding:16px;color:#afd3ff;font:13px system-ui;';
+        loading.textContent = 'Loading native app…';
+        contentEl.appendChild(loading);
+
+        const res = await fetch(url, { mode: 'cors', credentials: 'omit', cache: 'no-cache' });
+        if (!res.ok) throw new Error('HTTP ' + res.status + ' fetching ' + url);
+        const html = await res.text();
+        const baseHref = new URL(url, window.location.href).href;
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        this.rewriteDocumentUrls(doc, baseHref);
+
+        const root = document.createElement('div');
+        root.className = 'wd-native-root';
+        root.dataset.nativeUrl = baseHref;
+        root.style.cssText = 'flex:1;min-height:0;width:100%;height:100%;overflow:auto;position:relative;';
+
+        // Pull stylesheet links + style tags into the root (scoped as much as possible)
+        doc.querySelectorAll('link[rel="stylesheet"], style').forEach((node) => {
+            root.appendChild(node.cloneNode(true));
+        });
+
+        const bodyWrap = document.createElement('div');
+        bodyWrap.className = 'wd-native-body';
+        bodyWrap.style.cssText = 'min-height:100%;';
+        // Clone body children except scripts (scripts handled separately)
+        Array.from(doc.body ? doc.body.childNodes : []).forEach((node) => {
+            if (node.nodeName === 'SCRIPT') return;
+            bodyWrap.appendChild(node.cloneNode(true));
+        });
+        root.appendChild(bodyWrap);
+
+        contentEl.innerHTML = '';
+        contentEl.appendChild(root);
+
+        // Execute scripts in order (clone so they run in this document)
+        const scripts = Array.from(doc.querySelectorAll('script'));
+        for (const old of scripts) {
+            await new Promise((resolve) => {
+                const s = document.createElement('script');
+                Array.from(old.attributes).forEach((a) => {
+                    if (a.name === 'src') s.src = this.absolutizeUrl(a.value, baseHref);
+                    else s.setAttribute(a.name, a.value);
+                });
+                if (!old.src && old.textContent) s.textContent = old.textContent;
+                s.onload = () => resolve();
+                s.onerror = () => resolve();
+                if (!s.src) {
+                    root.appendChild(s);
+                    resolve();
+                } else {
+                    root.appendChild(s);
+                    // external: wait onload
+                }
+            });
+        }
+
+        const win = this.openWindows.get(id);
+        if (win) win.nativeRoot = root;
     }
 
     setupWindowEvents(id) {
@@ -671,6 +799,10 @@ class WindowManager {
         iframes.forEach(iframe => {
             iframe.src = 'about:blank';
             iframe.remove();
+        });
+        win.element.querySelectorAll('.wd-native-root').forEach((n) => {
+            n.querySelectorAll('script').forEach((s) => s.remove());
+            n.remove();
         });
         win.element.remove();
         if (!this.pinnedApps?.includes(id)) {
