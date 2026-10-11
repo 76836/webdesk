@@ -25,7 +25,9 @@ class AppManager {
             icon: config.icon || config.iconUrl || null,
             pinned: config.pinned || false,
             position: config.position || { x: 50, y: 50 },
-            size: config.size || { width: '80vw', height: '70vh' }
+            size: config.size || { width: '80vw', height: '70vh' },
+            gamesMode: !!config.gamesMode,
+            WDNative: !!(config.WDNative || config.wdNative)
         };
 
         this.apps.set(id, defaultConfig);
