@@ -221,6 +221,7 @@ class WindowManager {
         });
     }
 
+
     async loadNativeApp(id, contentEl, url) {
         contentEl.innerHTML = '';
         const loading = document.createElement('div');
@@ -238,30 +239,67 @@ class WindowManager {
         const doc = parser.parseFromString(html, 'text/html');
         this.rewriteDocumentUrls(doc, baseHref);
 
-        const root = document.createElement('div');
-        root.className = 'wd-native-root';
-        root.dataset.nativeUrl = baseHref;
-        root.style.cssText = 'flex:1;min-height:0;width:100%;height:100%;overflow:auto;position:relative;';
+        // Host lives in light DOM; all app CSS/markup stays in Shadow DOM (isolated).
+        const host = document.createElement('div');
+        host.className = 'wd-native-host';
+        host.dataset.nativeUrl = baseHref;
+        host.style.cssText = 'flex:1;min-height:0;width:100%;height:100%;overflow:hidden;position:relative;isolation:isolate;';
 
-        // Pull stylesheet links + style tags into the root (scoped as much as possible)
+        const shadow = host.attachShadow({ mode: 'open' });
+
+        // Base reset so app body/html styles don't rely on WebDesk page defaults
+        const reset = document.createElement('style');
+        reset.textContent = `
+            :host {
+                display: block;
+                width: 100%;
+                height: 100%;
+                min-height: 0;
+                overflow: auto;
+                position: relative;
+                background: #fff;
+                color: #111;
+                font: 16px/1.4 system-ui, Segoe UI, Roboto, sans-serif;
+                box-sizing: border-box;
+            }
+            :host *, :host *::before, :host *::after { box-sizing: border-box; }
+            .wd-native-body {
+                min-height: 100%;
+                width: 100%;
+            }
+        `;
+        shadow.appendChild(reset);
+
+        // App styles only inside the shadow tree
         doc.querySelectorAll('link[rel="stylesheet"], style').forEach((node) => {
-            root.appendChild(node.cloneNode(true));
+            shadow.appendChild(node.cloneNode(true));
         });
 
         const bodyWrap = document.createElement('div');
         bodyWrap.className = 'wd-native-body';
-        bodyWrap.style.cssText = 'min-height:100%;';
-        // Clone body children except scripts (scripts handled separately)
+        // Apply body classes from source page for themes that target body.foo
+        if (doc.body && doc.body.className) {
+            bodyWrap.className = 'wd-native-body ' + doc.body.className;
+        }
         Array.from(doc.body ? doc.body.childNodes : []).forEach((node) => {
             if (node.nodeName === 'SCRIPT') return;
             bodyWrap.appendChild(node.cloneNode(true));
         });
-        root.appendChild(bodyWrap);
+        shadow.appendChild(bodyWrap);
 
         contentEl.innerHTML = '';
-        contentEl.appendChild(root);
+        contentEl.appendChild(host);
 
-        // Execute scripts in order (clone so they run in this document)
+        // Point common document lookups at this shadow tree for the life of the window
+        // so app scripts keep working without leaking CSS to WebDesk.
+        const shims = this.installNativeDocumentShims(shadow);
+        const win = this.openWindows.get(id);
+        if (win) {
+            win.nativeRoot = host;
+            win.nativeShadow = shadow;
+            win.nativeShims = shims;
+        }
+
         const scripts = Array.from(doc.querySelectorAll('script'));
         for (const old of scripts) {
             await new Promise((resolve) => {
@@ -271,21 +309,84 @@ class WindowManager {
                     else s.setAttribute(a.name, a.value);
                 });
                 if (!old.src && old.textContent) s.textContent = old.textContent;
-                s.onload = () => resolve();
-                s.onerror = () => resolve();
-                if (!s.src) {
-                    root.appendChild(s);
-                    resolve();
-                } else {
-                    root.appendChild(s);
-                    // external: wait onload
-                }
+                let done = false;
+                const finish = () => { if (!done) { done = true; resolve(); } };
+                s.onload = finish;
+                s.onerror = finish;
+                // Scripts must be in the connected document to execute; append to host (light DOM)
+                // so they run in page JS world while DOM queries are shimmed into the shadow.
+                host.appendChild(s);
+                if (!s.src) finish();
             });
         }
-
-        const win = this.openWindows.get(id);
-        if (win) win.nativeRoot = root;
     }
+
+    installNativeDocumentShims(shadow) {
+        if (!this._nativeShimStack) this._nativeShimStack = [];
+        const stack = this._nativeShimStack;
+
+        const orig = {
+            getElementById: document.getElementById.bind(document),
+            querySelector: document.querySelector.bind(document),
+            querySelectorAll: document.querySelectorAll.bind(document),
+            getElementsByClassName: document.getElementsByClassName.bind(document),
+            getElementsByTagName: document.getElementsByTagName.bind(document),
+        };
+
+        const topShadow = () => (stack.length ? stack[stack.length - 1].shadow : null);
+
+        document.getElementById = (id) => {
+            const sh = topShadow();
+            if (sh) {
+                try {
+                    const n = sh.getElementById(id);
+                    if (n) return n;
+                } catch (_) {}
+            }
+            return orig.getElementById(id);
+        };
+        document.querySelector = (sel) => {
+            const sh = topShadow();
+            if (sh) {
+                try {
+                    const n = sh.querySelector(sel);
+                    if (n) return n;
+                } catch (_) {}
+            }
+            return orig.querySelector(sel);
+        };
+        document.querySelectorAll = (sel) => {
+            const sh = topShadow();
+            if (sh) {
+                try {
+                    const n = sh.querySelectorAll(sel);
+                    if (n && n.length) return n;
+                } catch (_) {}
+            }
+            return orig.querySelectorAll(sel);
+        };
+
+        const entry = { shadow, orig };
+        // Only install orig overrides once; stack tracks active shadows
+        if (stack.length === 0) {
+            // already assigned above
+        }
+        stack.push(entry);
+
+        return {
+            shadow,
+            uninstall: () => {
+                const i = stack.indexOf(entry);
+                if (i >= 0) stack.splice(i, 1);
+                if (stack.length === 0) {
+                    document.getElementById = orig.getElementById;
+                    document.querySelector = orig.querySelector;
+                    document.querySelectorAll = orig.querySelectorAll;
+                }
+            }
+        };
+    }
+
 
     setupWindowEvents(id) {
         const win = this.openWindows.get(id);
@@ -800,7 +901,11 @@ class WindowManager {
             iframe.src = 'about:blank';
             iframe.remove();
         });
-        win.element.querySelectorAll('.wd-native-root').forEach((n) => {
+        if (win.nativeShims && typeof win.nativeShims.uninstall === 'function') {
+            try { win.nativeShims.uninstall(); } catch (_) {}
+            win.nativeShims = null;
+        }
+        win.element.querySelectorAll('.wd-native-host, .wd-native-root').forEach((n) => {
             n.querySelectorAll('script').forEach((s) => s.remove());
             n.remove();
         });
