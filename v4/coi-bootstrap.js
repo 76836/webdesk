@@ -11,8 +11,8 @@
   const FAIL_KEY = "WebDesk_coi_failed";
   const MAX = 2;
   // SW lives under WebDesk so scope is /webdesk/ (not site root)
-  const ROOT_SW = new URL("/webdesk/enable-threads.js", location.origin).href;
-  const ROOT_SCOPE = new URL("/webdesk/", location.origin).href;
+  const ROOT_SW = new URL("/webdesk/v4/enable-threads.js", location.origin).href;
+  const ROOT_SCOPE = new URL("/webdesk/v4/", location.origin).href;
 
   const log = (...a) => console.log("[WebDesk COI]", ...a);
   const warn = (...a) => console.warn("[WebDesk COI]", ...a);
@@ -101,8 +101,8 @@
     for (const reg of regs) {
       const u = urls(reg);
       const isOurs =
-        u.some((x) => /\/webdesk\/enable-threads\.js/i.test(x)) &&
-        (reg.scope === ROOT_SCOPE || reg.scope === location.origin + "/webdesk/");
+        u.some((x) => /\/webdesk\/(v4\/)?enable-threads\.js/i.test(x)) &&
+        (reg.scope === ROOT_SCOPE || reg.scope === location.origin + "/webdesk/v4/" || reg.scope === location.origin + "/webdesk/");
       if (isOurs) {
         log("keeping root enable-threads", reg.scope);
         continue;
@@ -200,7 +200,7 @@
 
     return {
       reg,
-      controlled: !!(ctrl && /webdesk\/enable-threads\.js/i.test(ctrl.scriptURL)),
+      controlled: !!(ctrl && /webdesk\/(v4\/)?enable-threads\.js/i.test(ctrl.scriptURL)),
       controller: ctrl ? ctrl.scriptURL : null,
     };
   }
