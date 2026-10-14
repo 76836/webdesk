@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JavaScript Console</title>
     <style>
-        /*
-          Works standalone (body) and as WDNative (Shadow :host / .wd-native-body).
-          No global selectors that can reach outside the shadow tree.
-        */
         :host, .wd-native-body, html, body {
             font-family: 'Courier New', monospace !important;
             margin: 0 !important;
@@ -20,12 +16,7 @@
             height: 100%;
             width: 100%;
         }
-
-        html, body {
-            height: 100vh;
-            width: 100vw;
-        }
-
+        html, body { height: 100vh; width: 100vw; }
         #terminal {
             width: 100%;
             white-space: pre-wrap;
@@ -33,7 +24,6 @@
             font-family: 'Courier New', monospace;
             font-size: larger;
         }
-
         #input {
             outline: none;
             border: none;
@@ -58,11 +48,19 @@
     const input = document.getElementById('input');
     const history = [];
     let histIdx = -1;
+    let liveLogs = true;
+
+    function desk() {
+        try {
+            return window.parent && window.parent !== window ? window.parent : window;
+        } catch (_) {
+            return window;
+        }
+    }
 
     function say(text) {
         term.innerHTML += text + '\n';
         input.value = '';
-        try { term.scrollIntoView(false); } catch (_) {}
         try {
             const root = term.getRootNode && term.getRootNode();
             if (root && root.host) root.host.scrollTop = root.host.scrollHeight;
@@ -89,16 +87,32 @@
             .replace(/"/g, '&quot;');
     }
 
-    function desk() {
-        try {
-            return window.parent && window.parent !== window ? window.parent : window;
-        } catch (_) {
-            return window;
+    function formatLog(line) {
+        const ts = new Date(line.t).toLocaleTimeString();
+        const tag = (line.level === 'error' || line.level === 'warn') ? line.level : (line.src || 'log');
+        return '[' + ts + ' ' + tag + '] ' + line.msg;
+    }
+
+    function attachLiveLogs() {
+        const d = desk();
+        const bus = d.WebDeskLog || window.WebDeskLog;
+        if (!bus || !bus.on) {
+            say('WebDeskLog not available yet — open this console from WebDesk native.');
+            return;
         }
+        // backlog
+        (bus.dump(50) || []).forEach(function (line) {
+            say(formatLog(line));
+        });
+        bus.on(function (line) {
+            if (!liveLogs) return;
+            say(formatLog(line));
+        });
+        say('--- live logs on (type "logs off" to mute) ---');
     }
 
     function help() {
-        say('JavaScript Console (WebDesk native)\nExpressions evaluate in the WebDesk page context.\n\nhelp          this text\nclear         clear output\nwindows       list open WebDesk windows\napps          list registered apps\nfirefox       GeckoHost / Firefox status\n[any JS]      evaluate (e.g. 1+1)');
+        say('JavaScript Console (WebDesk native)\nExpressions evaluate in the WebDesk page context.\n\nhelp          this text\nclear         clear output\nlogs on|off   live Firefox/console feed\nlogs          dump recent log buffer\nwindows       list open WebDesk windows\napps          list registered apps\nfirefox       GeckoHost / isolation status\n[any JS]      evaluate (e.g. 1+1)');
     }
 
     function listWindows() {
@@ -131,15 +145,15 @@
 
     function firefoxStatus() {
         const d = desk();
-        const ff = d.WebDeskFirefox || window.WebDeskFirefox;
+        say('crossOriginIsolated=' + !!d.crossOriginIsolated);
         const gh = d.GeckoHost || window.GeckoHost;
-        if (ff) say('WebDeskFirefox API present');
-        else say('WebDeskFirefox not in this context (Firefox runs in its own iframe)');
         if (gh) {
             say('GeckoHost ready=' + !!(gh.isReady && gh.isReady()) + ' booted=' + !!(gh.isBooted && gh.isBooted()));
         } else {
-            say('GeckoHost not in this context');
+            say('GeckoHost not loaded (open Firefox first)');
         }
+        const ff = d.WebDeskFirefox || window.WebDeskFirefox;
+        say(ff ? 'WebDeskFirefox API present' : 'WebDeskFirefox API absent');
     }
 
     function run(line) {
@@ -153,6 +167,20 @@
         if (low === 'clear' || low === 'cls') {
             term.innerHTML = '';
             return;
+        }
+        if (low === 'logs' || low === 'logs on') {
+            if (low === 'logs') {
+                const bus = desk().WebDeskLog || window.WebDeskLog;
+                if (!bus) return say('no WebDeskLog');
+                (bus.dump(80) || []).forEach(function (line) { say(formatLog(line)); });
+                return;
+            }
+            liveLogs = true;
+            return say('live logs on');
+        }
+        if (low === 'logs off') {
+            liveLogs = false;
+            return say('live logs off');
         }
         if (low === 'windows') return listWindows();
         if (low === 'apps') return listApps();
@@ -202,7 +230,8 @@
     });
 
     window.WebDeskJSConsole = { run: run, say: say, desk: desk };
-    say('JavaScript Console, v1.0.\nType "help" for more info.\n###################################');
+    say('JavaScript Console, v1.1.\nType "help" for more info.\n###################################');
+    attachLiveLogs();
     input.focus();
 })();
 </script>
