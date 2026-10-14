@@ -235,7 +235,7 @@
     window.WebDeskFirefox = { setProgress, doLaunch, log };
   </script>
 
-  <script src="https://76836.github.io/firefox-wasm/coi-serviceworker.js?v=wdn1"></script>
+  <!-- WebDesk owns COI; firefox-wasm coi-serviceworker must not run natively (it reloads the desk) -->
   <script src="https://76836.github.io/firefox-wasm/gecko-host.js?v=wdn1"></script>
   <script src="https://76836.github.io/firefox-wasm/webdesk-fs.js?v=wdn1"></script>
   <script src="https://76836.github.io/firefox-wasm/net/usernet/socket.js?v=wdn1"></script>
