@@ -320,7 +320,7 @@
             { title: "Lunabot", path: "lunabot/app", iconUrl: BASE_URL + "lunabot/app/icon-512.png", category: "Chat", developer: "76836" },
             { title: "Animaxxer", path: "animaxxer", iconUrl: BASE_URL + "animaxxer/icon-512.png", category: "Entertainment", developer: "76836" },
             { title: "Firefox", path: "webdesk/v4/apps/firefox.html", iconUrl: BASE_URL + "firefox-wasm/assets/firefox-icon.png", category: "Browser", developer: "76836", WDNative: true },
-            { title: "JavaScript Console", path: "webdesk/v4/apps/jsconsole.html", iconUrl: FALLBACK_ICON, category: "System", developer: "76836", WDNative: true },
+            { title: "JavaScript Console", path: "webdesk/v4/apps/jsconsole.html", iconUrl: FALLBACK_ICON, category: "System", developer: "76836", WDNative: true, size: { width: "50vw", height: "50vh" } },
             
             { title: "Games Launcher", path: "games?embed=true", iconUrl: "https://76836.github.io/webdesk/v4/apps/icons/games-launcher.svg", category: "Games", developer: "76836", gamesMode: true },
             { title: "Calculator", path: "CalculatorXP", iconUrl: BASE_URL + "CalculatorXP/icon.png", category: "Tools", developer: "76836" },
@@ -405,6 +405,7 @@
             const extra = {};
             if (item.gamesMode) extra.gamesMode = true;
             if (item.WDNative) extra.WDNative = true;
+            if (item.size) extra.size = item.size;
             createApp(item.title, resolveUrl(item.path), item.iconUrl || FALLBACK_ICON, extra);
         }
 
