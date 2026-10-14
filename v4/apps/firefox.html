@@ -116,9 +116,18 @@
 
   <script>
     // Polished-only WebDesk native shell. Status → browser/JS console only.
-    const log = (...a) => console.log("[Firefox]", ...a);
-    const warn = (...a) => console.warn("[Firefox]", ...a);
-    const err = (...a) => console.error("[Firefox]", ...a);
+    function deskLog(level, ...a) {
+      const msg = a.map((x) => (typeof x === "string" ? x : (x && x.message) || String(x))).join(" ");
+      try {
+        const bus = window.WebDeskLog || (window.parent && window.parent.WebDeskLog);
+        bus?.write(level, "Firefox", msg);
+      } catch (_) {}
+      const fn = level === "error" ? console.error : level === "warn" ? console.warn : console.log;
+      fn.call(console, "[Firefox]", ...a);
+    }
+    const log = (...a) => deskLog("log", ...a);
+    const warn = (...a) => deskLog("warn", ...a);
+    const err = (...a) => deskLog("error", ...a);
 
     function setProgress(pct) {
       const fill = document.getElementById("polish-fill");
@@ -181,13 +190,43 @@
       });
     }
 
+    function patchCanvasToHost() {
+      const H = window.GeckoHost;
+      if (!H || H.__wdHostSized) return;
+      H.__wdHostSized = true;
+      H.sizeCanvas = function () {
+        const canvas = document.getElementById("screen");
+        if (!canvas) return { w: 1, h: 1 };
+        const root = canvas.getRootNode && canvas.getRootNode();
+        const host = root && root.host;
+        const w = Math.max(1, ((host && host.clientWidth) || window.innerWidth) | 0);
+        const h = Math.max(1, ((host && host.clientHeight) || window.innerHeight) | 0);
+        if (canvas.width !== w) canvas.width = w;
+        if (canvas.height !== h) canvas.height = h;
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+        return { w, h };
+      };
+      try {
+        const ro = new ResizeObserver(() => { try { H.sizeCanvas(); } catch (_) {} });
+        const canvas = document.getElementById("screen");
+        const host = canvas && canvas.getRootNode && canvas.getRootNode().host;
+        if (host) ro.observe(host);
+      } catch (_) {}
+    }
+
     function start() {
       if (!window.GeckoHost) {
-        err("GeckoHost not loaded");
+        err("GeckoHost not loaded — check WDNative script fetch / network");
         return;
+      }
+      log("crossOriginIsolated=" + !!window.crossOriginIsolated);
+      if (!window.crossOriginIsolated) {
+        err("SharedArrayBuffer unavailable. Settings → System → enable isolation headers, then reload WebDesk.");
       }
       window.NetStack?.boot?.();
       window.GeckoHost.init();
+      patchCanvasToHost();
       bindHost();
       setProgress(0.08);
       log("WebDesk native Firefox (polished)");
