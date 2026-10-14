@@ -157,9 +157,17 @@ class WindowManager {
             <div class="app-content"></div>
         `;
 
+        // Default half-screen for JS Console; honor config.size when set
+        let sz = config.size;
+        if (!sz && /jsconsole|javascript\s*console/i.test(String(id) + ' ' + String(config.title || ''))) {
+            sz = { width: '50vw', height: '50vh' };
+        }
+        sz = sz || {};
+        const w = sz.width || '800px';
+        const h = sz.height || '600px';
         Object.assign(windowEl.style, {
-            width: '800px',
-            height: '600px',
+            width: typeof w === 'number' ? w + 'px' : w,
+            height: typeof h === 'number' ? h + 'px' : h,
             left: '50px',
             top: '50px',
             display: 'flex',
