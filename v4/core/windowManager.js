@@ -257,15 +257,18 @@ class WindowManager {
                 min-height: 0;
                 overflow: auto;
                 position: relative;
-                background: #fff;
-                color: #111;
-                font: 16px/1.4 system-ui, Segoe UI, Roboto, sans-serif;
                 box-sizing: border-box;
+                /* Neutral shell — app styles own color/font/background; never paint WebDesk chrome */
+                background: transparent;
+                color: inherit;
+                font: inherit;
             }
             :host *, :host *::before, :host *::after { box-sizing: border-box; }
             .wd-native-body {
                 min-height: 100%;
+                height: 100%;
                 width: 100%;
+                margin: 0;
             }
         `;
         shadow.appendChild(reset);
