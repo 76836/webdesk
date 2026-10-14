@@ -10,7 +10,9 @@
   const RELOAD_KEY = "WebDesk_coi_reloads";
   const FAIL_KEY = "WebDesk_coi_failed";
   const MAX = 2;
-  const ROOT_SW = new URL("/enable-threads.js", location.origin).href;
+  // SW lives under WebDesk so scope is /webdesk/ (not site root)
+  const ROOT_SW = new URL("/webdesk/enable-threads.js", location.origin).href;
+  const ROOT_SCOPE = new URL("/webdesk/", location.origin).href;
 
   const log = (...a) => console.log("[WebDesk COI]", ...a);
   const warn = (...a) => console.warn("[WebDesk COI]", ...a);
@@ -25,7 +27,9 @@
     sessionStorage.setItem(RELOAD_KEY, String(n));
   }
 
-  function hardNavigate() {
+  async function hardNavigate() {
+    log("waiting 1s before reload…");
+    await wait(1000);
     const u = new URL(location.href);
     u.searchParams.delete("_coi");
     u.searchParams.set("_coi", String(Date.now()));
@@ -53,6 +57,36 @@
     return new Promise((r) => setTimeout(r, ms));
   }
 
+  /** Persist storage so Firefox Android keeps the service worker. */
+  async function requestStorage() {
+    try {
+      if (navigator.storage && navigator.storage.persist) {
+        let persisted = false;
+        try {
+          persisted = !!(await navigator.storage.persisted());
+        } catch (_) {}
+        if (persisted) {
+          log("storage already persisted");
+        } else {
+          const ok = await navigator.storage.persist();
+          log("storage.persist →", ok);
+        }
+      } else {
+        log("navigator.storage.persist not available");
+      }
+    } catch (e) {
+      warn("storage.persist failed", e);
+    }
+    try {
+      if (typeof document.requestStorageAccess === "function") {
+        await document.requestStorageAccess();
+        log("requestStorageAccess granted");
+      }
+    } catch (e) {
+      log("requestStorageAccess skipped/denied", e && e.message ? e.message : e);
+    }
+  }
+
   async function listRegs() {
     if (!("serviceWorker" in navigator)) return [];
     return navigator.serviceWorker.getRegistrations();
@@ -66,10 +100,10 @@
     const regs = await listRegs();
     for (const reg of regs) {
       const u = urls(reg);
-      const isOurRoot =
-        u.some((x) => x.includes("/enable-threads.js")) &&
-        (reg.scope === location.origin + "/" || reg.scope === new URL("/", location.origin).href);
-      if (isOurRoot) {
+      const isOurs =
+        u.some((x) => /\/webdesk\/enable-threads\.js/i.test(x)) &&
+        (reg.scope === ROOT_SCOPE || reg.scope === location.origin + "/webdesk/");
+      if (isOurs) {
         log("keeping root enable-threads", reg.scope);
         continue;
       }
@@ -91,6 +125,8 @@
       throw new Error("serviceWorker not supported");
     }
 
+    await requestStorage();
+
     // 1) Prove the script is fetchable (helps catch 404/HTML errors early)
     const probe = await fetch(ROOT_SW, { cache: "no-store" });
     if (!probe.ok) {
@@ -106,7 +142,7 @@
     // 2) Register with site-wide scope
     log("registering…");
     const reg = await navigator.serviceWorker.register(ROOT_SW, {
-      scope: "/",
+      scope: ROOT_SCOPE,
       updateViaCache: "none",
     });
     log("register resolved", "scope=", reg.scope, "installing=", !!reg.installing, "waiting=", !!reg.waiting, "active=", !!reg.active);
@@ -164,7 +200,7 @@
 
     return {
       reg,
-      controlled: !!(ctrl && ctrl.scriptURL.includes("enable-threads.js")),
+      controlled: !!(ctrl && /webdesk\/enable-threads\.js/i.test(ctrl.scriptURL)),
       controller: ctrl ? ctrl.scriptURL : null,
     };
   }
