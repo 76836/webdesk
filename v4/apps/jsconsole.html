@@ -5,21 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JavaScript Console</title>
     <style>
-        body {
-            font-family: 'Courier New', monospace;
-            height:100vh;
-            width:100vw;
-            margin:0;
-            background-color: black;
-            color: green;
+        /*
+          Works standalone (body) and as WDNative (Shadow :host / .wd-native-body).
+          No global selectors that can reach outside the shadow tree.
+        */
+        :host, .wd-native-body, html, body {
+            font-family: 'Courier New', monospace !important;
+            margin: 0 !important;
+            background-color: #000 !important;
+            color: #0f0 !important;
             overflow-wrap: break-word;
             overflow-x: hidden;
-            font-size:larger;
+            font-size: larger !important;
+            height: 100%;
+            width: 100%;
+        }
+
+        html, body {
+            height: 100vh;
+            width: 100vw;
         }
 
         #terminal {
             width: 100%;
             white-space: pre-wrap;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            font-size: larger;
         }
 
         #input {
@@ -27,10 +39,11 @@
             border: none;
             width: 100%;
             font-family: 'Courier New', monospace;
-            background-color: black;
-            color: blue;
-            margin:0;
-            font-size:larger;
+            background-color: #000;
+            color: #00f;
+            margin: 0;
+            font-size: larger;
+            display: block;
         }
     </style>
 </head>
@@ -49,14 +62,23 @@
     function say(text) {
         term.innerHTML += text + '\n';
         input.value = '';
-        try { window.scrollTo(0, document.body.scrollHeight); } catch (_) {}
+        try { term.scrollIntoView(false); } catch (_) {}
+        try {
+            const root = term.getRootNode && term.getRootNode();
+            if (root && root.host) root.host.scrollTop = root.host.scrollHeight;
+            else window.scrollTo(0, document.body.scrollHeight);
+        } catch (_) {}
     }
 
     function inputsay(text) {
         text = "<b style='color:blue;'>" + escapeHtml(text) + "</b>";
         term.innerHTML += text + '\n';
         input.value = '';
-        try { window.scrollTo(0, document.body.scrollHeight); } catch (_) {}
+        try {
+            const root = term.getRootNode && term.getRootNode();
+            if (root && root.host) root.host.scrollTop = root.host.scrollHeight;
+            else window.scrollTo(0, document.body.scrollHeight);
+        } catch (_) {}
     }
 
     function escapeHtml(s) {
@@ -180,7 +202,7 @@
     });
 
     window.WebDeskJSConsole = { run: run, say: say, desk: desk };
-    say('JavaScript Console, v1.0 (subNatural look).\nType "help" for more info.\n###################################');
+    say('JavaScript Console, v1.0.\nType "help" for more info.\n###################################');
     input.focus();
 })();
 </script>
