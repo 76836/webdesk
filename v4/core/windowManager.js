@@ -11,6 +11,47 @@ function pointerClient(e) {
     return { x: e.clientX, y: e.clientY };
 }
 
+
+/** Shared log ring so native apps (Firefox) surface errors in the JS Console. */
+(function installWebDeskLog() {
+    if (window.WebDeskLog) return;
+    const log = {
+        max: 400,
+        lines: [],
+        subs: new Set(),
+        write(level, src, msg) {
+            const line = { t: Date.now(), level: level || 'log', src: src || 'app', msg: String(msg) };
+            this.lines.push(line);
+            while (this.lines.length > this.max) this.lines.shift();
+            this.subs.forEach((fn) => { try { fn(line); } catch (_) {} });
+        },
+        on(fn) { this.subs.add(fn); return () => this.subs.delete(fn); },
+        dump(n) { return this.lines.slice(-(n || 100)); }
+    };
+    window.WebDeskLog = log;
+    ['log', 'warn', 'error', 'info'].forEach((level) => {
+        const orig = console[level].bind(console);
+        console[level] = (...args) => {
+            orig(...args);
+            try {
+                const msg = args.map((a) => {
+                    if (typeof a === 'string') return a;
+                    if (a && typeof a === 'object' && a.message) return a.message;
+                    try { return JSON.stringify(a); } catch (_) { return String(a); }
+                }).join(' ');
+                log.write(level, 'console', msg);
+            } catch (_) {}
+        };
+    });
+    window.addEventListener('error', (e) => {
+        log.write('error', 'window', (e.message || 'error') + (e.filename ? ' @ ' + e.filename + ':' + e.lineno : ''));
+    });
+    window.addEventListener('unhandledrejection', (e) => {
+        const r = e.reason;
+        log.write('error', 'promise', r && r.message ? r.message : String(r));
+    });
+})();
+
 class WindowManager {
     constructor() {
         this.openWindows = new Map();
@@ -315,13 +356,22 @@ class WindowManager {
                 let done = false;
                 const finish = () => { if (!done) { done = true; resolve(); } };
                 s.onload = finish;
-                s.onerror = finish;
-                // Scripts must be in the connected document to execute; append to host (light DOM)
-                // so they run in page JS world while DOM queries are shimmed into the shadow.
+                s.onerror = () => {
+                    const src = s.src || '(inline)';
+                    console.error('[WDNative] script failed:', src);
+                    try { window.WebDeskLog?.write('error', 'WDNative', 'script failed: ' + src); } catch (_) {}
+                    finish();
+                };
+                // Scripts run in page JS world; DOM queries shimmed into the shadow.
                 host.appendChild(s);
                 if (!s.src) finish();
             });
         }
+
+        try {
+            window.WebDeskLog?.write('info', 'WDNative', 'loaded ' + (url || id));
+            window.WebDeskLog?.write('info', 'WDNative', 'crossOriginIsolated=' + !!window.crossOriginIsolated);
+        } catch (_) {}
     }
 
     installNativeDocumentShims(shadow) {
