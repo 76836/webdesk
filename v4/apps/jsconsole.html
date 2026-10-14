@@ -1,214 +1,189 @@
 <!DOCTYPE html>
-<html lang="en">
+<html id="html" lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>JavaScript Console</title>
-  <style>
-    html, body {
-      margin: 0;
-      height: 100%;
-      width: 100%;
-      font-family: "Courier New", Courier, monospace;
-      background: #000;
-      color: #0f0;
-      font-size: larger;
-      overflow: hidden;
-    }
-    #wrap {
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      box-sizing: border-box;
-      padding: 8px;
-    }
-    #out {
-      flex: 1;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    #out .err { color: #f66; }
-    #out .ok { color: #6f6; }
-    #out .dim { color: #0a0; opacity: 0.7; }
-    #out .in { color: #08f; }
-    #row {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-      border-top: 1px solid #030;
-      padding-top: 6px;
-    }
-    #prompt { color: #08f; }
-    #input {
-      flex: 1;
-      outline: none;
-      border: none;
-      background: #000;
-      color: #08f;
-      font-family: inherit;
-      font-size: inherit;
-      margin: 0;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaScript Console</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            height:100vh;
+            width:100vw;
+            margin:0;
+            background-color: black;
+            color: green;
+            overflow-wrap: break-word;
+            overflow-x: hidden;
+            font-size:larger;
+        }
+
+        #terminal {
+            width: 100%;
+            white-space: pre-wrap;
+        }
+
+        #input {
+            outline: none;
+            border: none;
+            width: 100%;
+            font-family: 'Courier New', monospace;
+            background-color: black;
+            color: blue;
+            margin:0;
+            font-size:larger;
+        }
+    </style>
 </head>
-<body>
-  <div id="wrap">
-    <div id="out"></div>
-    <div id="row">
-      <span id="prompt">&gt;</span>
-      <input id="input" type="text" autocomplete="off" spellcheck="false" />
-    </div>
-  </div>
-  <script>
-    (function () {
-      const out = document.getElementById("out");
-      const input = document.getElementById("input");
-      const history = [];
-      let histIdx = -1;
+<body onclick="document.getElementById('input').focus();">
 
-      function say(text, cls) {
-        const line = document.createElement("div");
-        if (cls) line.className = cls;
-        line.textContent = String(text);
-        out.appendChild(line);
-        out.scrollTop = out.scrollHeight;
-      }
+<div id="terminal"></div>
+<input id="input" type="text" autofocus autocomplete="off" spellcheck="false">
 
-      function help() {
-        say("JavaScript Console (WebDesk native)", "ok");
-        say("Expressions evaluate in the WebDesk page context.", "dim");
-        say("  help          this text", "dim");
-        say("  clear         clear output", "dim");
-        say("  windows       list open WebDesk windows", "dim");
-        say("  apps          list registered apps", "dim");
-        say("  firefox       try WebDeskFirefox / GeckoHost status", "dim");
-        say("  :any JS       evaluate (e.g. 1+1, window.WebDesk)", "dim");
-      }
+<script>
+(function () {
+    const term = document.getElementById('terminal');
+    const input = document.getElementById('input');
+    const history = [];
+    let histIdx = -1;
 
-      function desk() {
+    function say(text) {
+        term.innerHTML += text + '\n';
+        input.value = '';
+        try { window.scrollTo(0, document.body.scrollHeight); } catch (_) {}
+    }
+
+    function inputsay(text) {
+        text = "<b style='color:blue;'>" + escapeHtml(text) + "</b>";
+        term.innerHTML += text + '\n';
+        input.value = '';
+        try { window.scrollTo(0, document.body.scrollHeight); } catch (_) {}
+    }
+
+    function escapeHtml(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function desk() {
         try {
-          return window.parent && window.parent !== window ? window.parent : window;
+            return window.parent && window.parent !== window ? window.parent : window;
         } catch (_) {
-          return window;
+            return window;
         }
-      }
+    }
 
-      function listWindows() {
+    function help() {
+        say('JavaScript Console (WebDesk native)\nExpressions evaluate in the WebDesk page context.\n\nhelp          this text\nclear         clear output\nwindows       list open WebDesk windows\napps          list registered apps\nfirefox       GeckoHost / Firefox status\n[any JS]      evaluate (e.g. 1+1)');
+    }
+
+    function listWindows() {
         const d = desk();
-        const wm = d.WebDesk?.windowManager;
-        if (!wm?.openWindows) {
-          say("WebDesk windowManager not found", "err");
-          return;
+        const wm = d.WebDesk && d.WebDesk.windowManager;
+        if (!wm || !wm.openWindows) {
+            say('WebDesk windowManager not found');
+            return;
         }
         const rows = [];
-        wm.openWindows.forEach((w, id) => {
-          rows.push(id + "  " + (w.config?.title || "") + "  " + (w.state || "") + (w.native ? " native" : ""));
+        wm.openWindows.forEach(function (w, id) {
+            rows.push(id + '  ' + ((w.config && w.config.title) || '') + '  ' + (w.state || '') + (w.native ? ' native' : ''));
         });
-        say(rows.length ? rows.join("\n") : "(no open windows)", "ok");
-      }
+        say(rows.length ? rows.join('\n') : '(no open windows)');
+    }
 
-      function listApps() {
+    function listApps() {
         const d = desk();
-        const apps = d.WebDesk?.appManager?.apps;
+        const apps = d.WebDesk && d.WebDesk.appManager && d.WebDesk.appManager.apps;
         if (!apps) {
-          say("WebDesk appManager not found", "err");
-          return;
+            say('WebDesk appManager not found');
+            return;
         }
         const rows = [];
-        apps.forEach((cfg, id) => {
-          rows.push(id + "  " + (cfg.title || "") + (cfg.WDNative ? " WDNative" : ""));
+        apps.forEach(function (cfg, id) {
+            rows.push(id + '  ' + (cfg.title || '') + (cfg.WDNative ? ' WDNative' : ''));
         });
-        say(rows.length ? rows.join("\n") : "(none)", "ok");
-      }
+        say(rows.length ? rows.join('\n') : '(none)');
+    }
 
-      function firefoxStatus() {
+    function firefoxStatus() {
         const d = desk();
         const ff = d.WebDeskFirefox || window.WebDeskFirefox;
         const gh = d.GeckoHost || window.GeckoHost;
-        if (ff) say("WebDeskFirefox API present", "ok");
-        else say("WebDeskFirefox not in this context (Firefox runs in its own iframe)", "dim");
+        if (ff) say('WebDeskFirefox API present');
+        else say('WebDeskFirefox not in this context (Firefox runs in its own iframe)');
         if (gh) {
-          say("GeckoHost ready=" + !!gh.isReady?.() + " booted=" + !!gh.isBooted?.(), "ok");
+            say('GeckoHost ready=' + !!(gh.isReady && gh.isReady()) + ' booted=' + !!(gh.isBooted && gh.isBooted()));
         } else {
-          say("GeckoHost not in this context", "dim");
+            say('GeckoHost not in this context');
         }
-        // Try postMessage ping to firefox iframes
-        try {
-          d.document.querySelectorAll("iframe").forEach((f) => {
-            try {
-              f.contentWindow?.postMessage({ type: "wd-jsconsole-ping" }, "*");
-            } catch (_) {}
-          });
-        } catch (_) {}
-      }
+    }
 
-      function run(line) {
-        const s = (line || "").trim();
+    function run(line) {
+        const s = (line || '').trim();
         if (!s) return;
-        say("> " + s, "in");
+        inputsay(s);
         history.push(s);
         histIdx = history.length;
         const low = s.toLowerCase();
-        if (low === "help" || low === "?") return help();
-        if (low === "clear" || low === "cls") {
-          out.innerHTML = "";
-          return;
+        if (low === 'help' || low === '?') return help();
+        if (low === 'clear' || low === 'cls') {
+            term.innerHTML = '';
+            return;
         }
-        if (low === "windows") return listWindows();
-        if (low === "apps") return listApps();
-        if (low === "firefox") return firefoxStatus();
+        if (low === 'windows') return listWindows();
+        if (low === 'apps') return listApps();
+        if (low === 'firefox') return firefoxStatus();
 
         try {
-          const d = desk();
-          // Evaluate in desk context so native apps share the same world when possible
-          const fn = new d.Function("return (" + s + ")");
-          let result;
-          try {
-            result = fn.call(d);
-          } catch (_) {
-            const fn2 = new d.Function(s);
-            result = fn2.call(d);
-          }
-          if (result !== undefined) {
+            const d = desk();
+            let result;
             try {
-              say(typeof result === "string" ? result : JSON.stringify(result, null, 2), "ok");
+                result = (new d.Function('return (' + s + ')')).call(d);
             } catch (_) {
-              say(String(result), "ok");
+                result = (new d.Function(s)).call(d);
             }
-          }
+            if (result !== undefined) {
+                try {
+                    say(typeof result === 'string' ? result : JSON.stringify(result, null, 2));
+                } catch (_) {
+                    say(String(result));
+                }
+            }
         } catch (e) {
-          say(e && e.message ? e.message : String(e), "err");
+            say(e && e.message ? e.message : String(e));
         }
-      }
+    }
 
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          const v = input.value;
-          input.value = "";
-          run(v);
-        } else if (e.key === "ArrowUp") {
-          e.preventDefault();
-          if (histIdx > 0) {
-            histIdx--;
-            input.value = history[histIdx] || "";
-          }
-        } else if (e.key === "ArrowDown") {
-          e.preventDefault();
-          if (histIdx < history.length - 1) {
-            histIdx++;
-            input.value = history[histIdx] || "";
-          } else {
-            histIdx = history.length;
-            input.value = "";
-          }
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+            const v = input.value;
+            input.value = '';
+            run(v);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (histIdx > 0) {
+                histIdx--;
+                input.value = history[histIdx] || '';
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (histIdx < history.length - 1) {
+                histIdx++;
+                input.value = history[histIdx] || '';
+            } else {
+                histIdx = history.length;
+                input.value = '';
+            }
         }
-      });
+    });
 
-      window.WebDeskJSConsole = { run, say, desk };
-      help();
-      input.focus();
-    })();
-  </script>
+    window.WebDeskJSConsole = { run: run, say: say, desk: desk };
+    say('JavaScript Console, v1.0 (subNatural look).\nType "help" for more info.\n###################################');
+    input.focus();
+})();
+</script>
+
 </body>
 </html>
