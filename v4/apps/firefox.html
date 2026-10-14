@@ -7,25 +7,40 @@
   <title>Firefox</title>
   <link rel="icon" href="https://76836.github.io/firefox-wasm/assets/firefox-icon.png" />
   <style>
-    /* Scoped to this document only (runs in its own iframe — does not touch WebDesk CSS) */
-    html, body {
-      margin: 0;
+    /*
+      WebDesk native (Shadow DOM) + standalone.
+      Never use position:fixed to the browser viewport — that covers all of WebDesk.
+      Styles stay inside :host / .wd-native-body; no desktop leakage.
+    */
+    :host, .wd-native-body, html, body {
+      margin: 0 !important;
       width: 100%;
       height: 100%;
-      overflow: hidden;
-      background: #38383d;
-      font-family: system-ui, sans-serif;
+      overflow: hidden !important;
+      background: #38383d !important;
+      font-family: system-ui, sans-serif !important;
+      color: #eee;
+      position: relative;
+      box-sizing: border-box;
     }
+    html, body {
+      height: 100vh;
+      width: 100vw;
+    }
+
     #screen {
-      position: fixed;
-      left: 0; top: 0;
+      position: absolute;
+      left: 0; top: 0; right: 0; bottom: 0;
+      width: 100%;
+      height: 100%;
       background: #000;
       z-index: 1;
       display: block;
       touch-action: none;
     }
+
     #polish {
-      position: fixed;
+      position: absolute;
       inset: 0;
       z-index: 25;
       display: flex;
@@ -54,13 +69,14 @@
       background: #ff7139;
       transition: width 0.2s linear;
     }
-    /* Upstream needs these nodes; keep off-screen */
+
+    /* Upstream stubs — never visible */
     #splash, #term, #fabs, #kb-capture, #console-output {
       position: absolute !important;
       width: 1px !important;
       height: 1px !important;
       overflow: hidden !important;
-      clip: rect(0,0,0,0) !important;
+      clip: rect(0, 0, 0, 0) !important;
       opacity: 0 !important;
       pointer-events: none !important;
     }
@@ -94,13 +110,12 @@
     <div class="polish-bar"><div id="polish-fill"></div></div>
   </div>
 
-  <!-- Terminal UI removed — use WebDesk JavaScript Console; keep stubs for GeckoHost -->
   <div id="term" hidden></div>
   <textarea id="kb-capture" hidden></textarea>
   <div id="fabs" hidden></div>
 
   <script>
-    // All status goes to the real browser/WebDesk JS console
+    // Polished-only WebDesk native shell. Status → browser/JS console only.
     const log = (...a) => console.log("[Firefox]", ...a);
     const warn = (...a) => console.warn("[Firefox]", ...a);
     const err = (...a) => console.error("[Firefox]", ...a);
@@ -118,7 +133,7 @@
 
     async function doLaunch() {
       if (!window.crossOriginIsolated) {
-        err("not crossOriginIsolated — enable WebDesk isolation headers / open top-level");
+        err("not crossOriginIsolated — enable isolation headers in WebDesk Settings → System");
         return;
       }
       if (window.WebDeskFS) {
@@ -175,26 +190,26 @@
       window.GeckoHost.init();
       bindHost();
       setProgress(0.08);
-      log("WebDesk Firefox shell (polished-only)");
+      log("WebDesk native Firefox (polished)");
     }
 
     window.WebDeskFirefox = { setProgress, doLaunch, log };
   </script>
 
-  <script src="https://76836.github.io/firefox-wasm/coi-serviceworker.js?v=wd1"></script>
-  <script src="https://76836.github.io/firefox-wasm/gecko-host.js?v=wd1"></script>
-  <script src="https://76836.github.io/firefox-wasm/webdesk-fs.js?v=wd1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/socket.js?v=wd1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/tcpip.js?v=wd1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/derp.js?v=wd1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/wireguard.js?v=wd1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/control.js?v=wd1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/index.js?v=wd1"></script>
-  <script src="https://76836.github.io/firefox-wasm/version.js?v=wd1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/stack.js?v=wd1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/wisp-local.js?v=wd1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/tailscale.js?v=wd1"></script>
-  <script type="module" src="https://76836.github.io/firefox-wasm/assets/index-D39giZCc.js?v=wd1"></script>
+  <script src="https://76836.github.io/firefox-wasm/coi-serviceworker.js?v=wdn1"></script>
+  <script src="https://76836.github.io/firefox-wasm/gecko-host.js?v=wdn1"></script>
+  <script src="https://76836.github.io/firefox-wasm/webdesk-fs.js?v=wdn1"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/socket.js?v=wdn1"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/tcpip.js?v=wdn1"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/derp.js?v=wdn1"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/wireguard.js?v=wdn1"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/control.js?v=wdn1"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/index.js?v=wdn1"></script>
+  <script src="https://76836.github.io/firefox-wasm/version.js?v=wdn1"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/stack.js?v=wdn1"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/wisp-local.js?v=wdn1"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/tailscale.js?v=wdn1"></script>
+  <script type="module" src="https://76836.github.io/firefox-wasm/assets/index-D39giZCc.js?v=wdn1"></script>
   <script>
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", start);
