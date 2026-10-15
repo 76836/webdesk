@@ -52,6 +52,52 @@ function pointerClient(e) {
     });
 })();
 
+
+/** Prevent app frames/scripts from reloading the whole desk (Firefox Android). */
+(function installTopNavigationGuard() {
+    if (window.__webdeskTopNavGuard) return;
+    window.__webdeskTopNavGuard = true;
+    const block = (why) => {
+        try { console.warn('[WebDesk] blocked top navigation:', why); } catch (_) {}
+        try { window.WebDeskLog?.write('warn', 'WebDesk', 'blocked top navigation: ' + why); } catch (_) {}
+    };
+    try {
+        const proto = Location.prototype;
+        for (const method of ['reload', 'replace', 'assign']) {
+            const orig = proto[method];
+            if (typeof orig !== 'function') continue;
+            proto[method] = function (...args) {
+                // Only block when a native/guard flag is set OR always block reload from nested contexts
+                try {
+                    if (method === 'reload') {
+                        block('location.reload()');
+                        return;
+                    }
+                    // replace/assign to a different document URL — block leaving /webdesk/
+                    const next = args[0] != null ? String(args[0]) : '';
+                    if (next && /^(https?:|\/\/)/i.test(next) && next.indexOf('/webdesk/') === -1) {
+                        block(method + ' ' + next);
+                        return;
+                    }
+                } catch (_) {}
+                return orig.apply(this, args);
+            };
+        }
+    } catch (e) {
+        try { console.warn('[WebDesk] Location guard failed', e); } catch (_) {}
+    }
+    // Same-origin iframes can set parent.location — wrap window.location setter if possible
+    try {
+        window.addEventListener('message', (ev) => {
+            const d = ev.data;
+            if (!d || d.type !== 'WebDeskLog') return;
+            try {
+                window.WebDeskLog?.write(d.level || 'log', d.src || 'iframe', d.msg || '');
+            } catch (_) {}
+        });
+    } catch (_) {}
+})();
+
 class WindowManager {
     constructor() {
         this.openWindows = new Map();
@@ -229,6 +275,13 @@ class WindowManager {
             iframe.style.flex = '1';
             iframe.style.display = 'block';
             iframe.style.border = '0';
+            // allow-scripts + allow-same-origin for app functionality; omit allow-top-navigation
+            // Note: same-origin iframes can still script parent — Location guard above mitigates reload.
+            iframe.setAttribute(
+                'sandbox',
+                'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads allow-pointer-lock'
+            );
+            iframe.setAttribute('allow', 'cross-origin-isolated; autoplay; clipboard-read; clipboard-write; fullscreen');
             content.appendChild(iframe);
         }
     }
