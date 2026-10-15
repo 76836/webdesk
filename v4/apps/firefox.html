@@ -83,6 +83,66 @@
   </style>
 </head>
 <body>
+
+  <script>
+    /* Native Firefox runs inside the WebDesk document. Upstream scripts must not
+       reload or re-register isolation workers on the desk tab. */
+    (function () {
+      const log = (m) => {
+        try { console.warn("[Firefox guard]", m); } catch (_) {}
+        try { window.WebDeskLog && window.WebDeskLog.write("warn", "Firefox", m); } catch (_) {}
+      };
+
+      try {
+        const loc = window.location;
+        const reload = loc.reload.bind(loc);
+        loc.reload = function () {
+          log("blocked location.reload()");
+        };
+      } catch (e) {
+        log("could not wrap location.reload: " + e);
+      }
+
+      try {
+        if (navigator.serviceWorker && navigator.serviceWorker.register) {
+          const reg = navigator.serviceWorker.register.bind(navigator.serviceWorker);
+          navigator.serviceWorker.register = function (url, opts) {
+            const u = String(url || "");
+            if (/webdesk\\/(v4\\/)?enable-threads\\.js/i.test(u)) {
+              return reg(url, opts);
+            }
+            log("blocked serviceWorker.register(" + u + ")");
+            return navigator.serviceWorker.getRegistration(opts && opts.scope).then(function (r) {
+              return r || reg(url, opts);
+            });
+          };
+        }
+      } catch (e) {
+        log("could not wrap SW register: " + e);
+      }
+
+      try {
+        const rs = history.replaceState.bind(history);
+        history.replaceState = function (state, title, url) {
+          // GeckoHost rewrites the desk URL for OPFS flags — skip that when native
+          if (url != null && String(url).indexOf("GECKO_OPFS") !== -1) {
+            log("blocked history.replaceState OPFS URL rewrite");
+            return;
+          }
+          if (url != null && String(url) !== location.pathname + location.search + location.hash) {
+            log("blocked history.replaceState → " + url);
+            return;
+          }
+          return rs(state, title, url);
+        };
+      } catch (e) {
+        log("could not wrap replaceState: " + e);
+      }
+
+      window.__webdeskFirefoxNative = true;
+    })();
+  </script>
+
   <section id="splash" aria-hidden="true">
     <div id="splash-shell" class="stage">
       <div id="stage-card" class="stage">
@@ -222,14 +282,31 @@
       }
       log("crossOriginIsolated=" + !!window.crossOriginIsolated);
       if (!window.crossOriginIsolated) {
-        err("SharedArrayBuffer unavailable. Settings → System → enable isolation headers, then reload WebDesk.");
+        err("SharedArrayBuffer unavailable. Settings → System → enable isolation headers (do not rely on Firefox to reload the desk).");
       }
+
+      // GeckoHost.launch() mutates location via history.replaceState — neutralize permanently
+      try {
+        const launch = window.GeckoHost.launch.bind(window.GeckoHost);
+        window.GeckoHost.launch = async function (opts) {
+          const rs = history.replaceState.bind(history);
+          history.replaceState = function () { /* no-op while launching */ };
+          try {
+            return await launch(opts || {});
+          } finally {
+            try { history.replaceState = rs; } catch (_) {}
+          }
+        };
+      } catch (e) {
+        warn("launch wrap failed", e);
+      }
+
       window.NetStack?.boot?.();
       window.GeckoHost.init();
       patchCanvasToHost();
       bindHost();
       setProgress(0.08);
-      log("WebDesk native Firefox (polished)");
+      log("WebDesk native Firefox (polished) — desk reload guards on");
     }
 
     window.WebDeskFirefox = { setProgress, doLaunch, log };
