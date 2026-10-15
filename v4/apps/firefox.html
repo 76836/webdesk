@@ -179,8 +179,13 @@
     function deskLog(level, ...a) {
       const msg = a.map((x) => (typeof x === "string" ? x : (x && x.message) || String(x))).join(" ");
       try {
-        const bus = window.WebDeskLog || (window.parent && window.parent.WebDeskLog);
+        const bus = window.WebDeskLog || (window.parent && window.parent !== window && window.parent.WebDeskLog);
         bus?.write(level, "Firefox", msg);
+      } catch (_) {}
+      try {
+        if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: "WebDeskLog", level: level, src: "Firefox", msg: msg }, "*");
+        }
       } catch (_) {}
       const fn = level === "error" ? console.error : level === "warn" ? console.warn : console.log;
       fn.call(console, "[Firefox]", ...a);
