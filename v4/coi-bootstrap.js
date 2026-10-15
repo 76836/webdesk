@@ -27,13 +27,27 @@
     sessionStorage.setItem(RELOAD_KEY, String(n));
   }
 
-  async function hardNavigate() {
-    log("waiting 1s before reload…");
+  async function hardNavigate(reason) {
+    const why = reason || "unspecified";
+    const stack = new Error("hardNavigate").stack || "";
+    try {
+      sessionStorage.setItem(
+        "WebDesk_last_nav",
+        JSON.stringify({ t: Date.now(), why: why, stack: stack, href: location.href })
+      );
+    } catch (_) {}
+    log("hardNavigate reason=", why);
+    log("waiting 1s before location.replace…");
     await wait(1000);
+    // Native Firefox debugging: do not tear down the desk mid-session
+    if (window.__webdeskFirefoxNative) {
+      warn("skipped hardNavigate — Firefox native session active (", why, ")");
+      return;
+    }
     const u = new URL(location.href);
     u.searchParams.delete("_coi");
     u.searchParams.set("_coi", String(Date.now()));
-    log("navigating with replace", u.pathname + u.search);
+    log("location.replace", u.pathname + u.search);
     location.replace(u.pathname + u.search + u.hash);
   }
 
@@ -228,7 +242,7 @@
       sessionStorage.removeItem(FAIL_KEY);
       if (!on) {
         await unregisterIsolation();
-        hardNavigate();
+        hardNavigate("coi-setEnabled-off");
         return;
       }
       try {
@@ -238,7 +252,7 @@
         console.error("[WebDesk COI] enable failed", e);
       }
       // Document that called register is often still non-isolated until navigation
-      hardNavigate();
+      hardNavigate("legacy");
     },
     consumeFailureFlag() {
       const f = sessionStorage.getItem(FAIL_KEY) === "1";
@@ -275,6 +289,11 @@
   }
 
   // -------- boot --------
+  try {
+    const last = sessionStorage.getItem("WebDesk_last_nav");
+    if (last) console.warn("[WebDesk COI] previous navigation:", last);
+  } catch (_) {}
+
   if (!wantCoi()) {
     listRegs().then(async (regs) => {
       const iso = regs.some((r) => urls(r).some((u) => /enable-threads|coi-sw/i.test(u)));
@@ -282,7 +301,7 @@
         await unregisterIsolation();
         if (sessionStorage.getItem("WebDesk_coi_cleanup") !== "1") {
           sessionStorage.setItem("WebDesk_coi_cleanup", "1");
-          hardNavigate();
+          hardNavigate("coi-cleanup-unregister");
         }
       } else {
         sessionStorage.removeItem("WebDesk_coi_cleanup");
@@ -315,11 +334,10 @@
     .then((r) => {
       log("pipeline done", r);
       // Always navigate once SW is active so THIS document loads under COOP/COEP
-      hardNavigate();
+      hardNavigate("coi-pipeline-done");
     })
     .catch((err) => {
       console.error("[WebDesk COI] pipeline error", err);
-      // Still navigate once so we don't spin; next attempt can retry
-      hardNavigate();
+      hardNavigate("coi-pipeline-error");
     });
 })();
