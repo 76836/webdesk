@@ -215,12 +215,10 @@ class WindowManager {
                 errEl.style.cssText = 'padding:16px;color:#ff8a80;font:14px system-ui;';
                 errEl.textContent = 'WDNative failed to load: ' + (err && err.message ? err.message : String(err));
                 content.appendChild(errEl);
-                // Fallback iframe so the app is still reachable
-                const iframe = document.createElement('iframe');
-                iframe.src = launchUrl;
-                iframe.frameBorder = '0';
-                iframe.style.cssText = 'flex:1;width:100%;height:100%;border:0;display:block;';
-                content.appendChild(iframe);
+                // No iframe fallback for native apps — external shells may reload the top page
+                try {
+                    window.WebDeskLog?.write('error', 'WDNative', String(err && err.message || err));
+                } catch (_) {}
             });
         } else {
             const iframe = document.createElement('iframe');
