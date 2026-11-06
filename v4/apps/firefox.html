@@ -318,19 +318,55 @@
   </script>
 
   <!-- WebDesk owns COI; firefox-wasm coi-serviceworker must not run natively (it reloads the desk) -->
-  <script src="https://76836.github.io/firefox-wasm/gecko-host.js?v=wdn1"></script>
-  <script src="https://76836.github.io/firefox-wasm/webdesk-fs.js?v=wdn1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/socket.js?v=wdn1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/tcpip.js?v=wdn1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/derp.js?v=wdn1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/wireguard.js?v=wdn1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/control.js?v=wdn1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/index.js?v=wdn1"></script>
-  <script src="https://76836.github.io/firefox-wasm/version.js?v=wdn1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/stack.js?v=wdn1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/wisp-local.js?v=wdn1"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/tailscale.js?v=wdn1"></script>
-  <script type="module" src="https://76836.github.io/firefox-wasm/assets/index-D39giZCc.js?v=wdn1"></script>
+  <script src="https://76836.github.io/firefox-wasm/gecko-host.js?v=wdn2"></script>
+  <script src="https://76836.github.io/firefox-wasm/webdesk-fs.js?v=wdn2"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/socket.js?v=wdn2"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/tcpip.js?v=wdn2"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/derp.js?v=wdn2"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/wireguard.js?v=wdn2"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/control.js?v=wdn2"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/index.js?v=wdn2"></script>
+  <script src="https://76836.github.io/firefox-wasm/version.js?v=wdn2"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/stack.js?v=wdn2"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/wisp-local.js?v=wdn2"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/tailscale.js?v=wdn2"></script>
+  <script>
+    window.__ffEngineOk = (function () {
+      try {
+        Function("return ({a:1})?.a ?? 0;")();
+        Function("async function x(){ await 0 }");
+        return true;
+      } catch (e) { return false; }
+    })();
+  </script>
+  <script type="module">
+    const showOld = (msg) => {
+      try {
+        const s = document.getElementById("splash-status") || document.getElementById("polish");
+        console.error("[Firefox]", msg);
+        if (window.WebDeskLog) window.WebDeskLog.write("error", "Firefox", msg);
+        const p = document.getElementById("polish");
+        if (p) {
+          p.classList.remove("hide");
+          let el = p.querySelector(".ff-engine-msg");
+          if (!el) {
+            el = document.createElement("p");
+            el.className = "ff-engine-msg";
+            el.style.cssText = "color:#ffb4a0;max-width:280px;text-align:center;font:13px system-ui;padding:0 12px;";
+            p.appendChild(el);
+          }
+          el.textContent = msg;
+        }
+      } catch (_) {}
+    };
+    if (!window.__ffEngineOk) {
+      showOld("This browser is too old for Firefox WASM. Use Chrome/Edge 90+.");
+    } else {
+      import("https://76836.github.io/firefox-wasm/assets/index-D39giZCc.js?v=28").catch((e) => {
+        showOld("Failed to load Firefox engine: " + (e && e.message ? e.message : e));
+      });
+    }
+  </script>
   <script>
     if (document.readyState === "loading") {
       document.addEventListener("DOMContentLoaded", start);
