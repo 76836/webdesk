@@ -318,18 +318,18 @@
   </script>
 
   <!-- WebDesk owns COI; firefox-wasm coi-serviceworker must not run natively (it reloads the desk) -->
-  <script src="https://76836.github.io/firefox-wasm/gecko-host.js?v=wdn3"></script>
-  <script src="https://76836.github.io/firefox-wasm/webdesk-fs.js?v=wdn3"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/socket.js?v=wdn3"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/tcpip.js?v=wdn3"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/derp.js?v=wdn3"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/wireguard.js?v=wdn3"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/control.js?v=wdn3"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/usernet/index.js?v=wdn3"></script>
-  <script src="https://76836.github.io/firefox-wasm/version.js?v=wdn3"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/stack.js?v=wdn3"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/wisp-local.js?v=wdn3"></script>
-  <script src="https://76836.github.io/firefox-wasm/net/tailscale.js?v=wdn3"></script>
+  <script src="https://76836.github.io/firefox-wasm/gecko-host.js?v=wdn4"></script>
+  <script src="https://76836.github.io/firefox-wasm/webdesk-fs.js?v=wdn4"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/socket.js?v=wdn4"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/tcpip.js?v=wdn4"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/derp.js?v=wdn4"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/wireguard.js?v=wdn4"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/control.js?v=wdn4"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/usernet/index.js?v=wdn4"></script>
+  <script src="https://76836.github.io/firefox-wasm/version.js?v=wdn4"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/stack.js?v=wdn4"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/wisp-local.js?v=wdn4"></script>
+  <script src="https://76836.github.io/firefox-wasm/net/tailscale.js?v=wdn4"></script>
   <script>
     window.__ffEngineOk = (function () {
       try {
@@ -362,7 +362,7 @@
     if (!window.__ffEngineOk) {
       showOld("This browser is too old for Firefox WASM. Use Chrome/Edge 80+.");
     } else {
-      import("https://76836.github.io/firefox-wasm/assets/index-D39giZCc.js?v=29").catch((e) => {
+      import("https://76836.github.io/firefox-wasm/assets/index-D39giZCc.js?v=30").catch((e) => {
         showOld("Failed to load Firefox engine: " + (e && e.message ? e.message : e));
       });
     }
