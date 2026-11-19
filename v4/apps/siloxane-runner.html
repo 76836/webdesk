@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Siloxane App</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; color: #eee; font: 14px system-ui, sans-serif; }
+    #boot { display: flex; align-items: center; justify-content: center; height: 100%; flex-direction: column; gap: 12px; padding: 24px; text-align: center; }
+    #boot.error { color: #f9dedc; }
+    #frame { border: 0; width: 100%; height: 100%; display: none; }
+    .spin { width: 28px; height: 28px; border: 3px solid #333; border-top-color: #25ffff; border-radius: 50%; animation: s 0.8s linear infinite; }
+    @keyframes s { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div id="boot"><div class="spin"></div><div id="msg">Loading Siloxane package…</div></div>
+  <iframe id="frame" title="Siloxane app" allow="microphone; camera; geolocation; autoplay; clipboard-read; clipboard-write; fullscreen"></iframe>
+  <script src="../core/siloxane.js"></script>
+  <script>
+(async function () {
+  const boot = document.getElementById('boot');
+  const msg = document.getElementById('msg');
+  const frame = document.getElementById('frame');
+  const params = new URLSearchParams(location.search);
+  const packageId = params.get('id') || params.get('package_id');
+
+  function fail(t) {
+    boot.classList.add('error');
+    msg.textContent = t || 'Failed to open package';
+    const spin = boot.querySelector('.spin');
+    if (spin) spin.remove();
+  }
+
+  if (!packageId) {
+    fail('Missing package id');
+    return;
+  }
+
+  if (!window.WebDeskSiloxane) {
+    fail('Siloxane runtime missing');
+    return;
+  }
+
+  let rec;
+  try {
+    rec = await WebDeskSiloxane.getPackage(packageId);
+  } catch (e) {
+    fail('Storage error: ' + (e.message || e));
+    return;
+  }
+  if (!rec || !rec.cfg) {
+    fail('Package not installed: ' + packageId);
+    return;
+  }
+
+  const cfg = rec.cfg;
+  document.title = cfg.name || 'Siloxane App';
+  if (cfg.background_color) document.body.style.background = cfg.background_color;
+
+  // Online package stored after successful probe — open remote URL
+  if (!cfg.offline) {
+    msg.textContent = 'Opening remote app…';
+    try {
+      const probe = await WebDeskSiloxane.probeOnlineUrl(cfg.start_url);
+      if (!probe.ok) {
+        fail(probe.error || "Can't open remote app (CORS or network).");
+        return;
+      }
+    } catch (e) {
+      fail("Can't open remote app: " + (e.message || e));
+      return;
+    }
+    frame.style.display = 'block';
+    boot.style.display = 'none';
+    frame.src = cfg.start_url;
+    return;
+  }
+
+  const files = rec.files || {};
+  const paths = Object.keys(files);
+  if (!paths.length) {
+    fail('Offline package has no files');
+    return;
+  }
+
+  msg.textContent = 'Preparing ' + paths.length + ' files…';
+
+  function mimeFor(path) {
+    const p = path.toLowerCase();
+    if (p.endsWith('.html') || p.endsWith('.htm')) return 'text/html';
+    if (p.endsWith('.js') || p.endsWith('.mjs')) return 'text/javascript';
+    if (p.endsWith('.css')) return 'text/css';
+    if (p.endsWith('.json') || p.endsWith('.webmanifest')) return 'application/json';
+    if (p.endsWith('.svg')) return 'image/svg+xml';
+    if (p.endsWith('.png')) return 'image/png';
+    if (p.endsWith('.jpg') || p.endsWith('.jpeg')) return 'image/jpeg';
+    if (p.endsWith('.gif')) return 'image/gif';
+    if (p.endsWith('.webp')) return 'image/webp';
+    if (p.endsWith('.woff2')) return 'font/woff2';
+    if (p.endsWith('.woff')) return 'font/woff';
+    if (p.endsWith('.ttf')) return 'font/ttf';
+    if (p.endsWith('.mp3')) return 'audio/mpeg';
+    if (p.endsWith('.wav')) return 'audio/wav';
+    if (p.endsWith('.mp4')) return 'video/mp4';
+    if (p.endsWith('.wasm')) return 'application/wasm';
+    return 'application/octet-stream';
+  }
+
+  // Build blob URL map for every file
+  const blobUrls = {};
+  for (const p of paths) {
+    const buf = files[p];
+    const blob = new Blob([buf], { type: mimeFor(p) });
+    blobUrls[p] = URL.createObjectURL(blob);
+    // also index without leading path variants
+    blobUrls['./' + p] = blobUrls[p];
+  }
+
+  function resolveLocal(rel, basePath) {
+    // basePath = directory of current file e.g. "css/" or ""
+    let joined = rel;
+    if (rel.startsWith('/')) joined = rel.replace(/^\/+/, '');
+    else {
+      const baseDir = basePath.includes('/') ? basePath.replace(/\/[^/]*$/, '/') : '';
+      joined = baseDir + rel;
+    }
+    // normalize .. and .
+    const parts = [];
+    for (const seg of joined.split('/')) {
+      if (!seg || seg === '.') continue;
+      if (seg === '..') parts.pop();
+      else parts.push(seg);
+    }
+    return parts.join('/');
+  }
+
+  function rewriteHtml(html, filePath) {
+    // Rewrite src/href/url to blob URLs when they resolve to package files
+    return html.replace(
+      /\b(src|href|poster)\s*=\s*(["'])([^"']+)\2/gi,
+      function (_, attr, q, url) {
+        if (/^(https?:|data:|blob:|javascript:|#|mailto:|tel:)/i.test(url)) return attr + '=' + q + url + q;
+        const key = resolveLocal(url, filePath);
+        if (blobUrls[key]) return attr + '=' + q + blobUrls[key] + q;
+        return attr + '=' + q + url + q;
+      }
+    ).replace(
+      /url\(\s*(['"]?)([^)'"]+)\1\s*\)/gi,
+      function (full, q, url) {
+        if (/^(https?:|data:|blob:)/i.test(url)) return full;
+        const key = resolveLocal(url, filePath);
+        if (blobUrls[key]) return 'url(' + q + blobUrls[key] + q + ')';
+        return full;
+      }
+    );
+  }
+
+  // Prefer rewriting CSS files so url() works when linked
+  for (const p of paths) {
+    if (!/\.css$/i.test(p)) continue;
+    try {
+      const text = new TextDecoder().decode(files[p]);
+      const rewritten = rewriteHtml(text, p); // same attr-less url() rewrite
+      const blob = new Blob([rewritten], { type: 'text/css' });
+      blobUrls[p] = URL.createObjectURL(blob);
+      blobUrls['./' + p] = blobUrls[p];
+    } catch (_) {}
+  }
+
+  const entry = files['index.html'] ? 'index.html' : 'index.htm';
+  let html = new TextDecoder().decode(files[entry]);
+  html = rewriteHtml(html, entry);
+
+  // Inject <base> won't work with blob URLs mixed; blob map is enough for top-level refs
+  const pageBlob = new Blob([html], { type: 'text/html' });
+  const pageUrl = URL.createObjectURL(pageBlob);
+
+  frame.style.display = 'block';
+  boot.style.display = 'none';
+  frame.src = pageUrl;
+})().catch(function (e) {
+  const boot = document.getElementById('boot');
+  const msg = document.getElementById('msg');
+  boot.classList.add('error');
+  msg.textContent = e && e.message ? e.message : String(e);
+});
+  </script>
+</body>
+</html>

@@ -306,8 +306,25 @@
                 <button type="button" class="btn btn-primary" id="btnAddCustom">Add to WebDesk</button>
             </div>
         </details>
+
+        <details class="add-panel" open>
+            <summary>+ Install Siloxane Lite (.siopk)</summary>
+            <div class="form-row">
+                <p style="margin:0 0 0.5rem;font-size:0.8rem;color:var(--muted);line-height:1.4">
+                    Offline packages run fully inside WebDesk. Online/web packages need a CORS-friendly host;
+                    if the site blocks access, installation is refused.
+                </p>
+                <label for="siopkFile">Local .siopk file</label>
+                <input type="file" id="siopkFile" accept=".siopk,application/zip,application/vnd.siloxane.siopk">
+                <label for="siopkUrl">Or package URL</label>
+                <input type="url" id="siopkUrl" placeholder="https://…/app.siopk">
+                <button type="button" class="btn btn-primary" id="btnInstallSiopk">Install Siloxane package</button>
+                <div id="siopkStatus" style="font-size:0.8rem;margin-top:0.4rem;color:var(--muted)"></div>
+            </div>
+        </details>
     </main>
 
+    <script src="../core/siloxane.js"></script>
     <script>
         const BASE_URL = "https://76836.github.io/";
         const FALLBACK_ICON = BASE_URL + "apple-touch-icon.png";
@@ -393,8 +410,14 @@
         }
 
         function uninstall(appId) {
+            const prev = getStored().find((a) => a.id === appId);
             const apps = getStored().filter((a) => a.id !== appId);
             saveStored(apps);
+            try {
+                if (prev && prev.config && prev.config.package_id && window.WebDeskSiloxane) {
+                    WebDeskSiloxane.deletePackage(prev.config.package_id).catch(function () {});
+                }
+            } catch (_) {}
             try {
                 window.parent.postMessage({ type: "unregisterApp", appId }, "*");
             } catch (_) {}
@@ -526,6 +549,60 @@
         });
 
         document.getElementById("btnAddCustom").addEventListener("click", () => createApp());
+
+        function setSiopkStatus(text, isErr) {
+            const el = document.getElementById("siopkStatus");
+            if (!el) return;
+            el.textContent = text || "";
+            el.style.color = isErr ? "var(--error)" : "var(--ok)";
+        }
+
+        async function installSiopkFromUser() {
+            const fileInput = document.getElementById("siopkFile");
+            const urlInput = document.getElementById("siopkUrl");
+            const file = fileInput && fileInput.files && fileInput.files[0];
+            const url = (urlInput && urlInput.value || "").trim();
+            if (!window.WebDeskSiloxane) {
+                setSiopkStatus("Siloxane runtime failed to load.", true);
+                return;
+            }
+            setSiopkStatus("Installing…", false);
+            try {
+                let result;
+                if (file) {
+                    const buf = await file.arrayBuffer();
+                    result = await WebDeskSiloxane.installFromBuffer(buf);
+                } else if (url) {
+                    result = await WebDeskSiloxane.installFromUrl(url);
+                } else {
+                    setSiopkStatus("Choose a .siopk file or enter a package URL.", true);
+                    return;
+                }
+                const app = WebDeskSiloxane.webdeskAppRecord(result.cfg, result.mode);
+                const apps = getStored();
+                const without = apps.filter((a) => a.id !== app.id);
+                without.push(app);
+                saveStored(without);
+                try {
+                    window.parent.postMessage({ type: "registerApp", app }, "*");
+                } catch (_) {}
+                setSiopkStatus(
+                    "Installed “" + result.cfg.name + "” (" + result.mode +
+                    (result.filesCount != null ? ", " + result.filesCount + " files" : "") + ").",
+                    false
+                );
+                if (fileInput) fileInput.value = "";
+                render();
+            } catch (e) {
+                const msg = (e && e.message) ? e.message : String(e);
+                setSiopkStatus(msg, true);
+                console.error("[Siloxane install]", e);
+            }
+        }
+
+        document.getElementById("btnInstallSiopk").addEventListener("click", () => {
+            installSiopkFromUser();
+        });
 
         window.onload = render;
     </script>
