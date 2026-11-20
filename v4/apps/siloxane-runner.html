@@ -107,75 +107,124 @@
     return 'application/octet-stream';
   }
 
-  // Build blob URL map for every file
+  // Build blob URL map for every file (case-insensitive + query-stripped lookup)
   const blobUrls = {};
+  const files = rec.files || {};
+  const paths = Object.keys(files);
+
+  function mimeFor(path) {
+    const ext = (path.split('.').pop() || '').toLowerCase();
+    const map = {
+      html: 'text/html', htm: 'text/html', css: 'text/css', js: 'text/javascript', mjs: 'text/javascript',
+      json: 'application/json', svg: 'image/svg+xml', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+      gif: 'image/gif', webp: 'image/webp', ico: 'image/x-icon', woff: 'font/woff', woff2: 'font/woff2',
+      ttf: 'font/ttf', otf: 'font/otf', mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg',
+      mp4: 'video/mp4', webm: 'video/webm', wasm: 'application/wasm', txt: 'text/plain', map: 'application/json'
+    };
+    return map[ext] || 'application/octet-stream';
+  }
+
   for (const p of paths) {
     const buf = files[p];
     const blob = new Blob([buf], { type: mimeFor(p) });
-    blobUrls[p] = URL.createObjectURL(blob);
-    // also index without leading path variants
-    blobUrls['./' + p] = blobUrls[p];
+    const url = URL.createObjectURL(blob);
+    blobUrls[p] = url;
+    blobUrls['./' + p] = url;
+    blobUrls[p.toLowerCase()] = url;
+  }
+
+  function stripQuery(u) {
+    return String(u || '').split('#')[0].split('?')[0];
   }
 
   function resolveLocal(rel, basePath) {
-    // basePath = directory of current file e.g. "css/" or ""
-    let joined = rel;
+    rel = stripQuery(rel).replace(/\\/g, '/');
+    if (!rel) return '';
+    let joined;
     if (rel.startsWith('/')) joined = rel.replace(/^\/+/, '');
     else {
       const baseDir = basePath.includes('/') ? basePath.replace(/\/[^/]*$/, '/') : '';
       joined = baseDir + rel;
     }
-    // normalize .. and .
     const parts = [];
     for (const seg of joined.split('/')) {
       if (!seg || seg === '.') continue;
-      if (seg === '..') parts.pop();
+      if (seg === '..') { if (parts.length) parts.pop(); }
       else parts.push(seg);
     }
     return parts.join('/');
   }
 
-  function rewriteHtml(html, filePath) {
-    // Rewrite src/href/url to blob URLs when they resolve to package files
-    return html.replace(
-      /\b(src|href|poster)\s*=\s*(["'])([^"']+)\2/gi,
-      function (_, attr, q, url) {
-        if (/^(https?:|data:|blob:|javascript:|#|mailto:|tel:)/i.test(url)) return attr + '=' + q + url + q;
-        const key = resolveLocal(url, filePath);
-        if (blobUrls[key]) return attr + '=' + q + blobUrls[key] + q;
-        return attr + '=' + q + url + q;
-      }
-    ).replace(
-      /url\(\s*(['"]?)([^)'"]+)\1\s*\)/gi,
-      function (full, q, url) {
-        if (/^(https?:|data:|blob:)/i.test(url)) return full;
-        const key = resolveLocal(url, filePath);
-        if (blobUrls[key]) return 'url(' + q + blobUrls[key] + q + ')';
-        return full;
-      }
-    );
+  function lookupBlob(rel, basePath) {
+    const key = resolveLocal(rel, basePath);
+    if (!key) return null;
+    return blobUrls[key] || blobUrls['./' + key] || blobUrls[key.toLowerCase()] || null;
   }
 
-  // Prefer rewriting CSS files so url() works when linked
+  function rewriteText(text, filePath) {
+    return String(text)
+      .replace(/\b(src|href|poster|data-src|data-href)\s*=\s*(["'])([^"']+)\2/gi, function (_, attr, q, url) {
+        if (/^(https?:|data:|blob:|javascript:|#|mailto:|tel:)/i.test(url)) return attr + '=' + q + url + q;
+        const hit = lookupBlob(url, filePath);
+        return attr + '=' + q + (hit || url) + q;
+      })
+      .replace(/url\(\s*(['"]?)([^)'"]+)\1\s*\)/gi, function (full, q, url) {
+        if (/^(https?:|data:|blob:)/i.test(url)) return full;
+        const hit = lookupBlob(url, filePath);
+        if (hit) return 'url(' + (q || '"') + hit + (q || '"') + ')';
+        return full;
+      })
+      .replace(/\b(import\s+(?:[^"'()]+from\s*)?|export\s+[^"'()]*from\s*|import\s*\(\s*)(["'])([^"']+)\2/gi, function (full, pre, q, url) {
+        if (/^(https?:|data:|blob:)/i.test(url)) return full;
+        const hit = lookupBlob(url, filePath);
+        if (!hit) return full;
+        return full.replace(q + url + q, q + hit + q);
+      });
+  }
+
+  // Rewrite CSS url() before HTML links them
   for (const p of paths) {
     if (!/\.css$/i.test(p)) continue;
     try {
       const text = new TextDecoder().decode(files[p]);
-      const rewritten = rewriteHtml(text, p); // same attr-less url() rewrite
-      const blob = new Blob([rewritten], { type: 'text/css' });
-      blobUrls[p] = URL.createObjectURL(blob);
-      blobUrls['./' + p] = blobUrls[p];
+      const blob = new Blob([rewriteText(text, p)], { type: 'text/css' });
+      const url = URL.createObjectURL(blob);
+      blobUrls[p] = url;
+      blobUrls['./' + p] = url;
+      blobUrls[p.toLowerCase()] = url;
     } catch (_) {}
   }
 
-  const entry = files['index.html'] ? 'index.html' : 'index.htm';
-  let html = new TextDecoder().decode(files[entry]);
-  html = rewriteHtml(html, entry);
+  // Rewrite relative imports inside JS so modules resolve to blobs
+  for (const p of paths) {
+    if (!/\.m?js$/i.test(p)) continue;
+    try {
+      const text = new TextDecoder().decode(files[p]);
+      const blob = new Blob([rewriteText(text, p)], { type: 'text/javascript' });
+      const url = URL.createObjectURL(blob);
+      blobUrls[p] = url;
+      blobUrls['./' + p] = url;
+      blobUrls[p.toLowerCase()] = url;
+    } catch (_) {}
+  }
 
-  // Inject <base> won't work with blob URLs mixed; blob map is enough for top-level refs
+  const entry = files['index.html'] ? 'index.html' : (files['index.htm'] ? 'index.htm' : null);
+  if (!entry) {
+    fail('Package has no index.html');
+    return;
+  }
+  let html = new TextDecoder().decode(files[entry]);
+  html = rewriteText(html, entry);
+  // Prevent auto-dark inversion inside package apps
+  if (!/<meta\s+name=["']color-scheme["']/i.test(html)) {
+    html = html.replace(/<head([^>]*)>/i, '<head$1><meta name="color-scheme" content="light dark">');
+  }
+
   const pageBlob = new Blob([html], { type: 'text/html' });
   const pageUrl = URL.createObjectURL(pageBlob);
 
+  frame.setAttribute('allowtransparency', 'true');
+  frame.style.background = 'transparent';
   frame.style.display = 'block';
   boot.style.display = 'none';
   frame.src = pageUrl;

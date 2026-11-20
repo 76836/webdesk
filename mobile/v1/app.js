@@ -170,13 +170,23 @@ function ensureFrame(id) {
     try {
       const doc = iframe.contentDocument;
       if (!doc) return;
+      // Stop Android/Chrome auto-dark inversion (black becoming white) without forcing a scheme on the iframe element
+      if (doc.head && !doc.querySelector('meta[name="color-scheme"]')) {
+        const meta = doc.createElement('meta');
+        meta.name = 'color-scheme';
+        meta.content = 'light dark';
+        doc.head.insertBefore(meta, doc.head.firstChild);
+      }
       const s = doc.createElement('style');
-      s.textContent = 'html,body{background:transparent!important;background-color:transparent!important;}';
+      s.setAttribute('data-wd-mobile-shell', '1');
+      s.textContent = [
+        ':root{color-scheme:light dark;}',
+        /* transparent page default so wallpaper can show; apps that set their own bg still win if more specific */
+        'html,body{background-color:transparent!important;}'
+      ].join('');
       (doc.head || doc.documentElement).appendChild(s);
-      if (doc.documentElement) doc.documentElement.style.background = 'transparent';
-      if (doc.body) doc.body.style.background = 'transparent';
     } catch (_) {
-      /* cross-origin — shell iframe stays transparent; page paints its own bg */
+      /* cross-origin */
     }
   });
   appHost.append(iframe); frames.set(id, iframe); return iframe;
