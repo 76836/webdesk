@@ -7,12 +7,10 @@ const STORAGE_KEYS = {
 const BUILTIN = [
   { id: 'settings', name: 'Settings', url: '../../v4/apps/settings.html', glyph: '⚙️', iconUrl: '../../images/icons/settings.png' },
   { id: 'files', name: 'Files', url: '../../v4/apps/files.html', glyph: '📁', iconUrl: '../../images/icons/files.png' },
-  { id: 'terminal', name: 'Terminal', url: '../../programs/terminal/index.html', glyph: '💻', iconUrl: '../../programs/terminal/apple-touch-icon.png' },
-  { id: 'calculator', name: 'Calculator', url: '../../programs/calculator/index.html', glyph: '🔢', iconUrl: 'https://76836.github.io/CalculatorXP/icon.png' },
   { id: 'appmaker', name: 'AppCenter', url: '../../v4/apps/appmaker.html', glyph: '🧩', iconUrl: 'https://76836.github.io/AppCenter/apple-touch-icon.png' }
 ];
-const DEFAULT_LAYOUT = { pages: [['search', 'settings', 'files', 'terminal', 'calculator'], ['appmaker']] };
-const DEFAULT_DOCK = ['settings', 'appmaker', 'files', 'calculator'];
+const DEFAULT_LAYOUT = { pages: [['search', 'settings', 'files'], ['appmaker']] };
+const DEFAULT_DOCK = ['settings', 'appmaker', 'files'];
 
 const shell = document.getElementById('phone-shell');
 const homeEl = document.getElementById('home');
@@ -59,14 +57,14 @@ function app(id) { return catalog.find((a) => a.id === id) || null; }
 function layout() {
   const s = parse(localStorage.getItem(STORAGE_KEYS.layout));
   const L = s?.pages?.length ? s : JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
-  L.pages = (L.pages || []).map((page) => page.filter((id) => id !== 'market'));
+  L.pages = (L.pages || []).map((page) => page.filter((id) => id !== 'market' && id !== 'terminal' && id !== 'calculator'));
   return L;
 }
 function saveLayout(L) { localStorage.setItem(STORAGE_KEYS.layout, JSON.stringify(L)); }
 function dockIds() {
   const s = parse(localStorage.getItem(STORAGE_KEYS.dock));
   const ids = Array.isArray(s) && s.length ? s : [...DEFAULT_DOCK];
-  return ids.filter((id) => id !== 'market');
+  return ids.filter((id) => id !== 'market' && id !== 'terminal' && id !== 'calculator');
 }
 function applyIcon(el, a) {
   const img = el.querySelector('.app-img'), glyph = el.querySelector('.app-glyph');
@@ -161,10 +159,26 @@ function ensureFrame(id) {
   if (frames.has(id)) return frames.get(id);
   const a = app(id); if (!a) return null;
   const iframe = document.createElement('iframe');
-  iframe.title = a.name; iframe.src = a.url; iframe.classList.add('hidden');
+  iframe.title = a.name;
+  iframe.src = a.url;
+  iframe.classList.add('hidden');
   iframe.allow = 'clipboard-read; clipboard-write; fullscreen';
   iframe.setAttribute('allowtransparency', 'true');
-  iframe.style.backgroundColor = 'transparent';
+  iframe.setAttribute('frameborder', '0');
+  iframe.style.cssText = 'background:transparent!important;background-color:transparent!important;border:0;width:100%;height:100%;';
+  iframe.addEventListener('load', () => {
+    try {
+      const doc = iframe.contentDocument;
+      if (!doc) return;
+      const s = doc.createElement('style');
+      s.textContent = 'html,body{background:transparent!important;background-color:transparent!important;}';
+      (doc.head || doc.documentElement).appendChild(s);
+      if (doc.documentElement) doc.documentElement.style.background = 'transparent';
+      if (doc.body) doc.body.style.background = 'transparent';
+    } catch (_) {
+      /* cross-origin — shell iframe stays transparent; page paints its own bg */
+    }
+  });
   appHost.append(iframe); frames.set(id, iframe); return iframe;
 }
 function openApp(id) {
