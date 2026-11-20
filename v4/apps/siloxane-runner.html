@@ -25,11 +25,37 @@
   const params = new URLSearchParams(location.search);
   const packageId = params.get('id') || params.get('package_id');
 
+  function notifyParent(title, body, level) {
+    const payload = {
+      type: 'webdesk:notify',
+      title: title || 'Siloxane',
+      body: body || '',
+      level: level || 'error',
+      source: 'siloxane',
+      packageId: packageId || null,
+      at: Date.now()
+    };
+    try { window.parent && window.parent.postMessage(payload, '*'); } catch (_) {}
+    try { window.top && window.top !== window && window.top.postMessage(payload, '*'); } catch (_) {}
+  }
+
   function fail(t) {
+    const text = t || 'Failed to open package';
     boot.classList.add('error');
-    msg.textContent = t || 'Failed to open package';
+    msg.textContent = text;
     const spin = boot.querySelector('.spin');
     if (spin) spin.remove();
+    notifyParent('Siloxane error', text, 'error');
+  }
+
+  function withTimeout(promise, ms, label) {
+    return new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error((label || 'Operation') + ' timed out after ' + ms + 'ms')), ms);
+      Promise.resolve(promise).then(
+        (v) => { clearTimeout(t); resolve(v); },
+        (e) => { clearTimeout(t); reject(e); }
+      );
+    });
   }
 
   if (!packageId) {
@@ -42,9 +68,10 @@
     return;
   }
 
+  msg.textContent = 'Reading package from storage…';
   let rec;
   try {
-    rec = await WebDeskSiloxane.getPackage(packageId);
+    rec = await withTimeout(WebDeskSiloxane.getPackage(packageId), 15000, 'Package storage read');
   } catch (e) {
     fail('Storage error: ' + (e.message || e));
     return;
@@ -109,21 +136,8 @@
 
   // Build blob URL map for every file (case-insensitive + query-stripped lookup)
   const blobUrls = {};
-  const files = rec.files || {};
-  const paths = Object.keys(files);
 
-  function mimeFor(path) {
-    const ext = (path.split('.').pop() || '').toLowerCase();
-    const map = {
-      html: 'text/html', htm: 'text/html', css: 'text/css', js: 'text/javascript', mjs: 'text/javascript',
-      json: 'application/json', svg: 'image/svg+xml', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
-      gif: 'image/gif', webp: 'image/webp', ico: 'image/x-icon', woff: 'font/woff', woff2: 'font/woff2',
-      ttf: 'font/ttf', otf: 'font/otf', mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg',
-      mp4: 'video/mp4', webm: 'video/webm', wasm: 'application/wasm', txt: 'text/plain', map: 'application/json'
-    };
-    return map[ext] || 'application/octet-stream';
-  }
-
+  let built = 0;
   for (const p of paths) {
     const buf = files[p];
     const blob = new Blob([buf], { type: mimeFor(p) });
@@ -131,6 +145,10 @@
     blobUrls[p] = url;
     blobUrls['./' + p] = url;
     blobUrls[p.toLowerCase()] = url;
+    built++;
+    if (built === 1 || built === paths.length || built % 25 === 0) {
+      msg.textContent = 'Preparing files… ' + built + '/' + paths.length;
+    }
   }
 
   function stripQuery(u) {
@@ -231,8 +249,16 @@
 })().catch(function (e) {
   const boot = document.getElementById('boot');
   const msg = document.getElementById('msg');
+  const text = e && e.message ? e.message : String(e);
   boot.classList.add('error');
-  msg.textContent = e && e.message ? e.message : String(e);
+  msg.textContent = text;
+  const spin = boot.querySelector('.spin');
+  if (spin) spin.remove();
+  try {
+    const payload = { type: 'webdesk:notify', title: 'Siloxane error', body: text, level: 'error', source: 'siloxane', at: Date.now() };
+    window.parent && window.parent.postMessage(payload, '*');
+    window.top && window.top !== window && window.top.postMessage(payload, '*');
+  } catch (_) {}
 });
   </script>
 </body>

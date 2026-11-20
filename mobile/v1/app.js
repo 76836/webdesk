@@ -11,6 +11,9 @@ const BUILTIN = [
 ];
 const DEFAULT_LAYOUT = { pages: [['search', 'settings', 'files'], ['appmaker']] };
 const DEFAULT_DOCK = ['settings', 'appmaker', 'files'];
+const NOTIF_KEY = 'webdesk.mobile.v1.notifications';
+const NOTIF_MAX = 40;
+
 
 const shell = document.getElementById('phone-shell');
 const homeEl = document.getElementById('home');
@@ -279,6 +282,63 @@ function setBrightness(v) {
   shell.style.filter = `brightness(${Number(v) / 100})`;
   localStorage.setItem(STORAGE_KEYS.brightness, String(v));
 }
+
+function loadNotifs() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(NOTIF_KEY) || '[]');
+    return Array.isArray(arr) ? arr : [];
+  } catch (_) { return []; }
+}
+function saveNotifs(list) {
+  localStorage.setItem(NOTIF_KEY, JSON.stringify(list.slice(0, NOTIF_MAX)));
+}
+function pushNotif(n) {
+  const item = {
+    id: 'n_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+    title: String(n.title || 'Notification'),
+    body: String(n.body || ''),
+    level: n.level === 'info' ? 'info' : 'error',
+    source: n.source || '',
+    at: n.at || Date.now()
+  };
+  const list = [item, ...loadNotifs()].slice(0, NOTIF_MAX);
+  saveNotifs(list);
+  renderNotifs();
+  // brief open control center on errors so user sees them
+  if (item.level === 'error' && ccEl) {
+    ccEl.classList.remove('hidden');
+  }
+  return item;
+}
+function clearNotifs() {
+  saveNotifs([]);
+  renderNotifs();
+}
+function renderNotifs() {
+  const listEl = document.getElementById('cc-notify-list');
+  const bar = document.getElementById('status-bar');
+  if (!listEl) return;
+  const list = loadNotifs();
+  if (bar) bar.setAttribute('data-has-notifs', list.length ? '1' : '0');
+  if (!list.length) {
+    listEl.innerHTML = '<p class="cc-notify-empty">No notifications</p>';
+    return;
+  }
+  listEl.innerHTML = '';
+  list.forEach((n) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'cc-notify-item ' + (n.level || 'info');
+    const t = new Date(n.at || Date.now());
+    const time = t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    btn.innerHTML = '<span class="n-title"></span><span class="n-body"></span><span class="n-time"></span>';
+    btn.querySelector('.n-title').textContent = n.title;
+    btn.querySelector('.n-body').textContent = n.body;
+    btn.querySelector('.n-time').textContent = time + (n.source ? ' · ' + n.source : '');
+    listEl.appendChild(btn);
+  });
+}
+
 function boot() {
   rebuildCatalog();
   const deskWall = localStorage.getItem('wallpaper');
@@ -288,6 +348,7 @@ function boot() {
   const b = localStorage.getItem(STORAGE_KEYS.brightness) || '100';
   brightnessSlider.value = b; setBrightness(b);
   renderHome(); clocks(); setInterval(clocks, 30000);
+  renderNotifs();
 }
 function bind() {
   document.getElementById('nav-home').addEventListener('click', goHome);
@@ -321,6 +382,9 @@ function bind() {
     if (y0 != null && e.touches[0].clientY - y0 > 20) ccEl.classList.remove('hidden');
   }, { passive: true });
   brightnessSlider.addEventListener('input', (e) => setBrightness(e.target.value));
+  const clearBtn = document.getElementById('btn-clear-notifs');
+  if (clearBtn) clearBtn.addEventListener('click', (e) => { e.stopPropagation(); clearNotifs(); });
+
   if (wallpaperSelect) wallpaperSelect.addEventListener('change', (e) => setWallpaper(e.target.value));
   document.addEventListener('click', (e) => {
     if (!ccEl.classList.contains('hidden') && !ccEl.contains(e.target) && !statusBar.contains(e.target)) ccEl.classList.add('hidden');
@@ -346,6 +410,15 @@ function bind() {
     }
     if (d.type === 'webdesk:set-wallpaper' && typeof d.wallpaper === 'string') {
       setWallpaper(d.wallpaper);
+    }
+    if (d.type === 'webdesk:notify' || d.type === 'siloxane:error') {
+      pushNotif({
+        title: d.title || (d.type === 'siloxane:error' ? 'Siloxane error' : 'Notification'),
+        body: d.body || d.message || '',
+        level: d.level || 'error',
+        source: d.source || '',
+        at: d.at
+      });
     }
     if (d.type === 'registerApp' || d.type === 'unregisterApp') setTimeout(() => { rebuildCatalog(); renderHome(); }, 40);
   });

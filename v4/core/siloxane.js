@@ -12,6 +12,12 @@
 
   function openDB() {
     return new Promise((resolve, reject) => {
+      let settled = false;
+      const timer = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        reject(new Error('IndexedDB open timed out (private mode or blocked storage?)'));
+      }, 10000);
       const r = indexedDB.open(DB_NAME, DB_VER);
       r.onupgradeneeded = () => {
         const db = r.result;
@@ -19,8 +25,24 @@
           db.createObjectStore(STORE, { keyPath: 'package_id' });
         }
       };
-      r.onsuccess = () => resolve(r.result);
-      r.onerror = () => reject(r.error || new Error('IDB open failed'));
+      r.onsuccess = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(r.result);
+      };
+      r.onerror = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(r.error || new Error('IDB open failed'));
+      };
+      r.onblocked = () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(new Error('IndexedDB open blocked by another tab'));
+      };
     });
   }
 
