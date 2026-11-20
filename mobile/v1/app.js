@@ -5,14 +5,13 @@ const STORAGE_KEYS = {
   dock: 'webdesk.mobile.v1.dock'
 };
 const BUILTIN = [
-  { id: 'settings', name: 'Settings', url: '../../programs/settings/index.html', glyph: '⚙️', iconUrl: '../../images/icons/settings.png' },
+  { id: 'settings', name: 'Settings', url: '../../v4/apps/settings.html', glyph: '⚙️', iconUrl: '../../images/icons/settings.png' },
   { id: 'files', name: 'Files', url: '../../v4/apps/files.html', glyph: '📁', iconUrl: '../../images/icons/files.png' },
   { id: 'terminal', name: 'Terminal', url: '../../programs/terminal/index.html', glyph: '💻', iconUrl: '../../programs/terminal/apple-touch-icon.png' },
   { id: 'calculator', name: 'Calculator', url: '../../programs/calculator/index.html', glyph: '🔢', iconUrl: 'https://76836.github.io/CalculatorXP/icon.png' },
-  { id: 'market', name: 'Market', url: '../../programs/market/index.html', glyph: '🛒', iconUrl: '../../programs/market/apple-touch-icon.png' },
   { id: 'appmaker', name: 'AppCenter', url: '../../v4/apps/appmaker.html', glyph: '🧩', iconUrl: 'https://76836.github.io/AppCenter/apple-touch-icon.png' }
 ];
-const DEFAULT_LAYOUT = { pages: [['search', 'settings', 'files', 'terminal', 'calculator'], ['market', 'appmaker']] };
+const DEFAULT_LAYOUT = { pages: [['search', 'settings', 'files', 'terminal', 'calculator'], ['appmaker']] };
 const DEFAULT_DOCK = ['settings', 'appmaker', 'files', 'calculator'];
 
 const shell = document.getElementById('phone-shell');
@@ -31,7 +30,6 @@ const statusBar = document.getElementById('status-bar');
 const statusTime = document.getElementById('status-time');
 const ccDate = document.getElementById('cc-date');
 const brightnessSlider = document.getElementById('brightness-slider');
-const wallpaperSelect = document.getElementById('wallpaper-select');
 
 let catalog = [], frames = new Map(), history = [], current = null, dragItem = null, editMode = false;
 
@@ -59,12 +57,16 @@ function rebuildCatalog() {
 function app(id) { return catalog.find((a) => a.id === id) || null; }
 function layout() {
   const s = parse(localStorage.getItem(STORAGE_KEYS.layout));
-  return s?.pages?.length ? s : JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
+  const L = s?.pages?.length ? s : JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
+  // Drop deprecated Market from persisted home layouts
+  L.pages = (L.pages || []).map((page) => page.filter((id) => id !== 'market'));
+  return L;
 }
 function saveLayout(L) { localStorage.setItem(STORAGE_KEYS.layout, JSON.stringify(L)); }
 function dockIds() {
   const s = parse(localStorage.getItem(STORAGE_KEYS.dock));
-  return Array.isArray(s) && s.length ? s : [...DEFAULT_DOCK];
+  const ids = Array.isArray(s) && s.length ? s : [...DEFAULT_DOCK];
+  return ids.filter((id) => id !== 'market');
 }
 function applyIcon(el, a) {
   const img = el.querySelector('.app-img'), glyph = el.querySelector('.app-glyph');
@@ -161,6 +163,8 @@ function ensureFrame(id) {
   const iframe = document.createElement('iframe');
   iframe.title = a.name; iframe.src = a.url; iframe.classList.add('hidden');
   iframe.allow = 'clipboard-read; clipboard-write; fullscreen';
+  iframe.setAttribute('allowtransparency', 'true');
+  iframe.style.background = 'transparent';
   appHost.append(iframe); frames.set(id, iframe); return iframe;
 }
 function openApp(id) {
@@ -218,10 +222,48 @@ function clocks() {
   statusTime.textContent = n.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   ccDate.textContent = n.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 }
-function setWallpaper(name) {
-  shell.classList.remove('wallpaper-default', 'wallpaper-water', 'wallpaper-foreshadowing');
-  shell.classList.add(`wallpaper-${name}`);
-  localStorage.setItem(STORAGE_KEYS.wallpaper, name);
+function clearPresetWallpaperClasses() {
+  shell.classList.remove('wallpaper-default', 'wallpaper-water', 'wallpaper-foreshadowing', 'has-custom-wallpaper');
+}
+function applyDesktopWallpaper(url) {
+  // Same contract as WebDesk v4: localStorage key "wallpaper", postMessage type setWallpaper
+  const oldVideo = shell.querySelector('.desktop-wallpaper-video');
+  if (oldVideo) oldVideo.remove();
+  clearPresetWallpaperClasses();
+  if (!url) {
+    shell.classList.add('wallpaper-default');
+    shell.style.backgroundImage = '';
+    return;
+  }
+  // Legacy mobile preset names
+  if (url === 'default' || url === 'water' || url === 'foreshadowing') {
+    shell.classList.add('wallpaper-' + url);
+    shell.style.backgroundImage = '';
+    localStorage.setItem(STORAGE_KEYS.wallpaper, url);
+    return;
+  }
+  localStorage.setItem('wallpaper', url);
+  localStorage.setItem(STORAGE_KEYS.wallpaper, url);
+  if ((url || '').startsWith('data:video') || /\.(mp4|webm|mov|m4v|ogg)(\?|$)/i.test(url || '')) {
+    shell.style.backgroundImage = 'none';
+    shell.classList.add('has-custom-wallpaper');
+    const video = document.createElement('video');
+    video.className = 'desktop-wallpaper-video';
+    video.src = url;
+    video.autoplay = true;
+    video.loop = true;
+    video.muted = true;
+    video.playsInline = true;
+    shell.prepend(video);
+  } else {
+    shell.classList.add('has-custom-wallpaper');
+    shell.style.backgroundImage = "url('" + String(url).replace(/'/g, "\'") + "')";
+    shell.style.backgroundSize = 'cover';
+    shell.style.backgroundPosition = 'center';
+  }
+}
+function setWallpaper(nameOrUrl) {
+  applyDesktopWallpaper(nameOrUrl);
 }
 function setBrightness(v) {
   shell.style.filter = `brightness(${Number(v) / 100})`;
@@ -229,12 +271,14 @@ function setBrightness(v) {
 }
 function boot() {
   rebuildCatalog();
-  const w = localStorage.getItem(STORAGE_KEYS.wallpaper) || 'default';
-  wallpaperSelect.value = w; setWallpaper(w);
+  const desk = localStorage.getItem('wallpaper');
+  const legacy = localStorage.getItem(STORAGE_KEYS.wallpaper);
+  applyDesktopWallpaper(desk || legacy || 'default');
   const b = localStorage.getItem(STORAGE_KEYS.brightness) || '100';
-  brightnessSlider.value = b; setBrightness(b);
+  if (brightnessSlider) { brightnessSlider.value = b; setBrightness(b); }
   renderHome(); clocks(); setInterval(clocks, 30000);
 }
+
 function bind() {
   document.getElementById('nav-home').addEventListener('click', goHome);
   document.getElementById('nav-recents').addEventListener('click', showRecents);
@@ -251,15 +295,6 @@ function bind() {
     if (now - lastHome < 350) openPicker();
     lastHome = now;
   });
-  document.querySelectorAll('[data-window-action]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      if (!current) return;
-      const act = btn.dataset.windowAction;
-      if (act === 'close') closeApp(current);
-      if (act === 'minimize') goHome();
-      if (act === 'maximize') appLayer.classList.toggle('maximized');
-    });
-  });
   statusBar.addEventListener('click', () => ccEl.classList.toggle('hidden'));
   let y0 = null;
   statusBar.addEventListener('touchstart', (e) => { y0 = e.touches[0].clientY; }, { passive: true });
@@ -267,7 +302,6 @@ function bind() {
     if (y0 != null && e.touches[0].clientY - y0 > 20) ccEl.classList.remove('hidden');
   }, { passive: true });
   brightnessSlider.addEventListener('input', (e) => setBrightness(e.target.value));
-  wallpaperSelect.addEventListener('change', (e) => setWallpaper(e.target.value));
   document.addEventListener('click', (e) => {
     if (!ccEl.classList.contains('hidden') && !ccEl.contains(e.target) && !statusBar.contains(e.target)) ccEl.classList.add('hidden');
   });
@@ -287,8 +321,11 @@ function bind() {
   });
   window.addEventListener('message', (ev) => {
     const d = ev.data; if (!d || typeof d !== 'object') return;
+    if (d.type === 'setWallpaper' && typeof d.url === 'string') {
+      applyDesktopWallpaper(d.url);
+    }
     if (d.type === 'webdesk:set-wallpaper' && typeof d.wallpaper === 'string') {
-      wallpaperSelect.value = d.wallpaper; setWallpaper(d.wallpaper);
+      applyDesktopWallpaper(d.wallpaper);
     }
     if (d.type === 'registerApp' || d.type === 'unregisterApp') setTimeout(() => { rebuildCatalog(); renderHome(); }, 40);
   });

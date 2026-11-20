@@ -25,11 +25,6 @@
     </main>
 
     <section id="app-layer" class="app-layer hidden" aria-live="polite">
-      <div class="window-controls">
-        <button type="button" data-window-action="minimize" aria-label="Minimize">▁</button>
-        <button type="button" data-window-action="maximize" aria-label="Fullscreen">▢</button>
-        <button type="button" data-window-action="close" aria-label="Close">✕</button>
-      </div>
       <div id="app-host" class="app-host"></div>
     </section>
 
@@ -62,13 +57,7 @@
       <label class="slider-label">Brightness
         <input id="brightness-slider" type="range" min="35" max="110" value="100" />
       </label>
-      <label class="slider-label">Wallpaper
-        <select id="wallpaper-select">
-          <option value="default">Default</option>
-          <option value="water">Water</option>
-          <option value="foreshadowing">Foreshadowing</option>
-        </select>
-      </label>
+      <p class="slider-label" style="opacity:.7;font-size:12px;margin:8px 0 0">Wallpaper is set in Settings</p>
     </section>
 
     <nav class="system-nav" aria-label="System navigation">

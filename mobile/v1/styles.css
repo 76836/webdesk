@@ -21,6 +21,16 @@ html, body {
 }
 .wallpaper-water { background-image: url("../../images/wallpapers/water.png"); }
 .wallpaper-foreshadowing { background-image: url("../../images/wallpapers/Foreshadowing.jpg"); }
+.phone-shell.has-custom-wallpaper {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+.phone-shell .desktop-wallpaper-video {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; z-index: 0; pointer-events: none;
+}
+.phone-shell > *:not(.desktop-wallpaper-video) { position: relative; z-index: 1; }
 .hidden { display: none !important; }
 
 .status-bar {
@@ -105,23 +115,22 @@ html, body {
 .dock .app-glyph, .dock .app-img { width: 52px; height: 52px; border-radius: 14px; }
 
 .app-layer {
-  position: absolute; inset: 0; z-index: 10; background: #0a0c10;
-  padding-top: calc(26px + var(--safe-top));
+  position: absolute; inset: 0; z-index: 10; background: transparent;
+  padding-top: var(--safe-top);
   padding-bottom: calc(52px + var(--safe-bottom));
 }
 .app-layer.maximized { padding-top: var(--safe-top); padding-bottom: var(--safe-bottom); }
-.window-controls {
-  position: absolute; top: calc(var(--safe-top) + 2px); right: 8px;
-  display: flex; gap: 6px; z-index: 11;
+/* No desktop window chrome on mobile */
+.window-controls { display: none !important; }
+.app-host {
+  height: 100%;
+  background: transparent;
 }
-.window-controls button {
-  border: 0; color: #fff; width: 36px; height: 28px;
-  border-radius: 8px; background: rgba(255,255,255,0.12); font-size: 12px;
-}
-.app-host { height: 100%; }
 .app-host iframe {
   width: 100%; height: 100%; border: 0;
-  border-radius: 18px 18px 0 0; background: #fff;
+  border-radius: 0;
+  background: transparent !important;
+  color-scheme: normal;
 }
 
 /* Android Overview */

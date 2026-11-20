@@ -313,9 +313,10 @@
                 <p style="margin:0 0 0.5rem;font-size:0.8rem;color:var(--muted);line-height:1.4">
                     Offline packages run fully inside WebDesk. Online/web packages need a CORS-friendly host;
                     if the site blocks access, installation is refused.
+                    On some phones the file picker only lists ZIPs — pick your .siopk there (it is a ZIP), or use “All files” if available.
                 </p>
                 <label for="siopkFile">Local .siopk file</label>
-                <input type="file" id="siopkFile" accept=".siopk,application/zip,application/vnd.siloxane.siopk">
+                <input type="file" id="siopkFile" accept=".siopk,.zip,application/zip,application/x-zip-compressed,application/octet-stream,application/vnd.siloxane.siopk,*/*">
                 <label for="siopkUrl">Or package URL</label>
                 <input type="url" id="siopkUrl" placeholder="https://…/app.siopk">
                 <button type="button" class="btn btn-primary" id="btnInstallSiopk">Install Siloxane package</button>
