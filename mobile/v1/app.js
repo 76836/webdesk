@@ -30,6 +30,7 @@ const statusBar = document.getElementById('status-bar');
 const statusTime = document.getElementById('status-time');
 const ccDate = document.getElementById('cc-date');
 const brightnessSlider = document.getElementById('brightness-slider');
+const wallpaperSelect = document.getElementById('wallpaper-select'); // optional; wallpaper lives in Settings
 
 let catalog = [], frames = new Map(), history = [], current = null, dragItem = null, editMode = false;
 
@@ -58,7 +59,6 @@ function app(id) { return catalog.find((a) => a.id === id) || null; }
 function layout() {
   const s = parse(localStorage.getItem(STORAGE_KEYS.layout));
   const L = s?.pages?.length ? s : JSON.parse(JSON.stringify(DEFAULT_LAYOUT));
-  // Drop deprecated Market from persisted home layouts
   L.pages = (L.pages || []).map((page) => page.filter((id) => id !== 'market'));
   return L;
 }
@@ -164,7 +164,7 @@ function ensureFrame(id) {
   iframe.title = a.name; iframe.src = a.url; iframe.classList.add('hidden');
   iframe.allow = 'clipboard-read; clipboard-write; fullscreen';
   iframe.setAttribute('allowtransparency', 'true');
-  iframe.style.background = 'transparent';
+  iframe.style.backgroundColor = 'transparent';
   appHost.append(iframe); frames.set(id, iframe); return iframe;
 }
 function openApp(id) {
@@ -222,48 +222,34 @@ function clocks() {
   statusTime.textContent = n.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   ccDate.textContent = n.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 }
-function clearPresetWallpaperClasses() {
-  shell.classList.remove('wallpaper-default', 'wallpaper-water', 'wallpaper-foreshadowing', 'has-custom-wallpaper');
-}
-function applyDesktopWallpaper(url) {
-  // Same contract as WebDesk v4: localStorage key "wallpaper", postMessage type setWallpaper
+function setWallpaper(nameOrUrl) {
   const oldVideo = shell.querySelector('.desktop-wallpaper-video');
   if (oldVideo) oldVideo.remove();
-  clearPresetWallpaperClasses();
-  if (!url) {
-    shell.classList.add('wallpaper-default');
-    shell.style.backgroundImage = '';
+  shell.classList.remove('wallpaper-default', 'wallpaper-water', 'wallpaper-foreshadowing', 'has-custom-wallpaper');
+  shell.style.backgroundImage = '';
+  const v = nameOrUrl || 'default';
+  if (v === 'default' || v === 'water' || v === 'foreshadowing') {
+    shell.classList.add('wallpaper-' + v);
+    localStorage.setItem(STORAGE_KEYS.wallpaper, v);
     return;
   }
-  // Legacy mobile preset names
-  if (url === 'default' || url === 'water' || url === 'foreshadowing') {
-    shell.classList.add('wallpaper-' + url);
-    shell.style.backgroundImage = '';
-    localStorage.setItem(STORAGE_KEYS.wallpaper, url);
-    return;
-  }
-  localStorage.setItem('wallpaper', url);
-  localStorage.setItem(STORAGE_KEYS.wallpaper, url);
-  if ((url || '').startsWith('data:video') || /\.(mp4|webm|mov|m4v|ogg)(\?|$)/i.test(url || '')) {
-    shell.style.backgroundImage = 'none';
+  // Desktop v4 wallpaper URL / data URL
+  localStorage.setItem('wallpaper', v);
+  localStorage.setItem(STORAGE_KEYS.wallpaper, v);
+  if (String(v).startsWith('data:video') || /\.(mp4|webm|mov|m4v|ogg)(\?|$)/i.test(String(v))) {
     shell.classList.add('has-custom-wallpaper');
     const video = document.createElement('video');
     video.className = 'desktop-wallpaper-video';
-    video.src = url;
+    video.src = v;
     video.autoplay = true;
     video.loop = true;
     video.muted = true;
     video.playsInline = true;
-    shell.prepend(video);
+    shell.insertBefore(video, shell.firstChild);
   } else {
     shell.classList.add('has-custom-wallpaper');
-    shell.style.backgroundImage = "url('" + String(url).replace(/'/g, "\'") + "')";
-    shell.style.backgroundSize = 'cover';
-    shell.style.backgroundPosition = 'center';
+    shell.style.backgroundImage = 'url(\'' + String(v).replace(/'/g, '%27') + '\')';
   }
-}
-function setWallpaper(nameOrUrl) {
-  applyDesktopWallpaper(nameOrUrl);
 }
 function setBrightness(v) {
   shell.style.filter = `brightness(${Number(v) / 100})`;
@@ -271,14 +257,14 @@ function setBrightness(v) {
 }
 function boot() {
   rebuildCatalog();
-  const desk = localStorage.getItem('wallpaper');
-  const legacy = localStorage.getItem(STORAGE_KEYS.wallpaper);
-  applyDesktopWallpaper(desk || legacy || 'default');
+  const deskWall = localStorage.getItem('wallpaper');
+  const w = deskWall || localStorage.getItem(STORAGE_KEYS.wallpaper) || 'default';
+  if (wallpaperSelect) wallpaperSelect.value = (deskWall ? 'default' : w);
+  setWallpaper(deskWall || w);
   const b = localStorage.getItem(STORAGE_KEYS.brightness) || '100';
-  if (brightnessSlider) { brightnessSlider.value = b; setBrightness(b); }
+  brightnessSlider.value = b; setBrightness(b);
   renderHome(); clocks(); setInterval(clocks, 30000);
 }
-
 function bind() {
   document.getElementById('nav-home').addEventListener('click', goHome);
   document.getElementById('nav-recents').addEventListener('click', showRecents);
@@ -295,6 +281,15 @@ function bind() {
     if (now - lastHome < 350) openPicker();
     lastHome = now;
   });
+  document.querySelectorAll('[data-window-action]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (!current) return;
+      const act = btn.dataset.windowAction;
+      if (act === 'close') closeApp(current);
+      if (act === 'minimize') goHome();
+      if (act === 'maximize') appLayer.classList.toggle('maximized');
+    });
+  });
   statusBar.addEventListener('click', () => ccEl.classList.toggle('hidden'));
   let y0 = null;
   statusBar.addEventListener('touchstart', (e) => { y0 = e.touches[0].clientY; }, { passive: true });
@@ -302,6 +297,7 @@ function bind() {
     if (y0 != null && e.touches[0].clientY - y0 > 20) ccEl.classList.remove('hidden');
   }, { passive: true });
   brightnessSlider.addEventListener('input', (e) => setBrightness(e.target.value));
+  if (wallpaperSelect) wallpaperSelect.addEventListener('change', (e) => setWallpaper(e.target.value));
   document.addEventListener('click', (e) => {
     if (!ccEl.classList.contains('hidden') && !ccEl.contains(e.target) && !statusBar.contains(e.target)) ccEl.classList.add('hidden');
   });
@@ -322,10 +318,10 @@ function bind() {
   window.addEventListener('message', (ev) => {
     const d = ev.data; if (!d || typeof d !== 'object') return;
     if (d.type === 'setWallpaper' && typeof d.url === 'string') {
-      applyDesktopWallpaper(d.url);
+      setWallpaper(d.url);
     }
     if (d.type === 'webdesk:set-wallpaper' && typeof d.wallpaper === 'string') {
-      applyDesktopWallpaper(d.wallpaper);
+      setWallpaper(d.wallpaper);
     }
     if (d.type === 'registerApp' || d.type === 'unregisterApp') setTimeout(() => { rebuildCatalog(); renderHome(); }, 40);
   });
