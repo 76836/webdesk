@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Settings</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0f1419;
+    --surface: #1a222c;
+    --surface2: #243040;
+    --primary: #a8c7fa;
+    --on-primary: #062e6f;
+    --text: #e3e8ef;
+    --muted: #9aa7b8;
+    --outline: rgba(255,255,255,0.08);
+    --danger: #ffb4ab;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; min-height: 100%;
+    background: var(--bg); color: var(--text);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    position: sticky; top: 0; z-index: 2;
+    padding: 18px 20px 12px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(16px);
+  }
+  header h1 { margin: 0; font-size: 1.75rem; font-weight: 500; letter-spacing: -0.02em; }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: 0.85rem; }
+  main { padding: 8px 16px 40px; display: grid; gap: 18px; }
+  .group { display: grid; gap: 2px; }
+  .group-title {
+    margin: 0 12px 8px; font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted);
+  }
+  .card {
+    background: var(--surface); border-radius: 20px; overflow: hidden;
+    border: 1px solid var(--outline);
+  }
+  .row {
+    display: grid; grid-template-columns: 1fr auto; gap: 12px;
+    align-items: center; padding: 14px 16px; min-height: 56px;
+    border: 0; width: 100%; text-align: left; background: transparent; color: inherit;
+    font: inherit; cursor: pointer;
+  }
+  .row + .row { border-top: 1px solid var(--outline); }
+  .row:active { background: var(--surface2); }
+  .row .label { display: grid; gap: 2px; }
+  .row .label strong { font-weight: 500; }
+  .row .label span { color: var(--muted); font-size: 0.85rem; }
+  .row .trail { color: var(--muted); font-size: 0.9rem; }
+  .switch {
+    width: 48px; height: 28px; border-radius: 999px; border: 0;
+    background: #3c4758; position: relative; cursor: pointer;
+  }
+  .switch.on { background: var(--primary); }
+  .switch::after {
+    content: ''; position: absolute; top: 3px; left: 3px;
+    width: 22px; height: 22px; border-radius: 50%; background: #fff;
+    transition: transform 0.15s ease;
+  }
+  .switch.on::after { transform: translateX(20px); background: var(--on-primary); }
+  input[type="range"] { width: min(42vw, 160px); accent-color: var(--primary); }
+  input[type="text"], input[type="url"] {
+    width: 100%; margin-top: 8px; padding: 12px 14px; border-radius: 12px;
+    border: 1px solid var(--outline); background: var(--surface2); color: var(--text);
+    font: inherit;
+  }
+  .btn {
+    border: 0; border-radius: 999px; padding: 10px 16px; font: inherit; font-weight: 500;
+    background: var(--primary); color: var(--on-primary); cursor: pointer;
+  }
+  .btn.ghost { background: var(--surface2); color: var(--text); }
+  .btn.danger { background: #5c2b2b; color: var(--danger); }
+  .stack { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .mono { font-family: ui-monospace, monospace; font-size: 0.8rem; color: var(--muted); word-break: break-all; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Settings</h1>
+    <p>WebDesk Mobile</p>
+  </header>
+  <main>
+    <section class="group">
+      <div class="group-title">Display</div>
+      <div class="card">
+        <div class="row">
+          <div class="label"><strong>Brightness</strong><span id="brightVal">100%</span></div>
+          <input id="brightness" type="range" min="35" max="110" value="100" />
+        </div>
+        <button type="button" class="row" id="btnWallpaper">
+          <div class="label"><strong>Wallpaper</strong><span>URL or built-in name</span></div>
+          <span class="trail">›</span>
+        </button>
+        <div id="wallPanel" hidden style="padding:12px 16px 16px">
+          <input id="wallUrl" type="url" placeholder="https://… or water / foreshadowing / default" />
+          <div class="stack">
+            <button type="button" class="btn" id="wallApply">Apply</button>
+            <button type="button" class="btn ghost" id="wallDefault">Default</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="group">
+      <div class="group-title">Navigation</div>
+      <div class="card">
+        <div class="row">
+          <div class="label"><strong>Swap Back &amp; Recents</strong><span>Left/right system buttons</span></div>
+          <button type="button" class="switch" id="swSwap" aria-pressed="false"></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="group">
+      <div class="group-title">Developer</div>
+      <div class="card">
+        <div class="row">
+          <div class="label"><strong>Verbose logging</strong><span>Siloxane + shell → JS Console</span></div>
+          <button type="button" class="switch" id="swVerbose" aria-pressed="false"></button>
+        </div>
+        <div class="row">
+          <div class="label"><strong>Notify on errors</strong><span>Push shell errors to notification center</span></div>
+          <button type="button" class="switch on" id="swNotifyErr" aria-pressed="true"></button>
+        </div>
+        <button type="button" class="row" id="btnOpenConsole">
+          <div class="label"><strong>Open JS Console</strong><span>View live logs</span></div>
+          <span class="trail">›</span>
+        </button>
+        <button type="button" class="row" id="btnClearLogs">
+          <div class="label"><strong>Clear log buffer</strong></div>
+          <span class="trail">›</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="group">
+      <div class="group-title">Notifications</div>
+      <div class="card">
+        <button type="button" class="row" id="btnClearNotifs">
+          <div class="label"><strong>Clear all notifications</strong></div>
+          <span class="trail">›</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="group">
+      <div class="group-title">About</div>
+      <div class="card">
+        <div class="row">
+          <div class="label">
+            <strong>WebDesk Mobile v1</strong>
+            <span class="mono" id="aboutLine">…</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+<script>
+(function () {
+  const KEYS = {
+    brightness: 'webdesk.mobile.v1.brightness',
+    swapNav: 'webdesk.mobile.v1.swapNav',
+    verbose: 'webdesk.mobile.v1.verbose',
+    notifyErr: 'webdesk.mobile.v1.notifyErrors',
+    wallpaper: 'wallpaper',
+    legacyWall: 'webdesk.mobile.v1.wallpaper',
+    notifs: 'webdesk.mobile.v1.notifications'
+  };
+  function parentWin() {
+    try { return window.parent && window.parent !== window ? window.parent : window; } catch (_) { return window; }
+  }
+  function get(k, d) {
+    const v = localStorage.getItem(k);
+    return v == null ? d : v;
+  }
+  function setSwitch(el, on) {
+    el.classList.toggle('on', !!on);
+    el.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+  function isOn(el) { return el.classList.contains('on'); }
+
+  const bright = document.getElementById('brightness');
+  const brightVal = document.getElementById('brightVal');
+  bright.value = get(KEYS.brightness, '100');
+  brightVal.textContent = bright.value + '%';
+  bright.addEventListener('input', () => {
+    brightVal.textContent = bright.value + '%';
+    localStorage.setItem(KEYS.brightness, bright.value);
+    parentWin().postMessage({ type: 'webdesk:set-brightness', value: bright.value }, '*');
+  });
+
+  const swSwap = document.getElementById('swSwap');
+  setSwitch(swSwap, get(KEYS.swapNav, '0') === '1');
+  swSwap.addEventListener('click', () => {
+    const on = !isOn(swSwap);
+    setSwitch(swSwap, on);
+    localStorage.setItem(KEYS.swapNav, on ? '1' : '0');
+    parentWin().postMessage({ type: 'webdesk:set-swap-nav', value: on }, '*');
+  });
+
+  const swVerbose = document.getElementById('swVerbose');
+  setSwitch(swVerbose, get(KEYS.verbose, '1') !== '0');
+  swVerbose.addEventListener('click', () => {
+    const on = !isOn(swVerbose);
+    setSwitch(swVerbose, on);
+    localStorage.setItem(KEYS.verbose, on ? '1' : '0');
+    parentWin().postMessage({ type: 'webdesk:set-verbose', value: on }, '*');
+  });
+
+  const swNotify = document.getElementById('swNotifyErr');
+  setSwitch(swNotify, get(KEYS.notifyErr, '1') !== '0');
+  swNotify.addEventListener('click', () => {
+    const on = !isOn(swNotify);
+    setSwitch(swNotify, on);
+    localStorage.setItem(KEYS.notifyErr, on ? '1' : '0');
+  });
+
+  const wallPanel = document.getElementById('wallPanel');
+  document.getElementById('btnWallpaper').addEventListener('click', () => {
+    wallPanel.hidden = !wallPanel.hidden;
+  });
+  document.getElementById('wallApply').addEventListener('click', () => {
+    const url = document.getElementById('wallUrl').value.trim();
+    if (!url) return;
+    localStorage.setItem(KEYS.wallpaper, url);
+    parentWin().postMessage({ type: 'setWallpaper', url }, '*');
+  });
+  document.getElementById('wallDefault').addEventListener('click', () => {
+    localStorage.setItem(KEYS.legacyWall, 'default');
+    localStorage.removeItem(KEYS.wallpaper);
+    parentWin().postMessage({ type: 'setWallpaper', url: 'default' }, '*');
+  });
+
+  document.getElementById('btnOpenConsole').addEventListener('click', () => {
+    parentWin().postMessage({ type: 'webdesk:open-app', id: 'jsconsole' }, '*');
+  });
+  document.getElementById('btnClearLogs').addEventListener('click', () => {
+    try {
+      const log = parentWin().WebDeskLog;
+      if (log && log.lines) log.lines.length = 0;
+    } catch (_) {}
+    parentWin().postMessage({ type: 'webdesk:notify', title: 'Logs cleared', body: 'JS Console buffer emptied', level: 'info', source: 'settings' }, '*');
+  });
+  document.getElementById('btnClearNotifs').addEventListener('click', () => {
+    localStorage.setItem(KEYS.notifs, '[]');
+    parentWin().postMessage({ type: 'webdesk:notifs-cleared' }, '*');
+  });
+
+  document.getElementById('aboutLine').textContent =
+    location.origin + ' · ' + (navigator.userAgent || '').slice(0, 80);
+})();
+</script>
+</body>
+</html>

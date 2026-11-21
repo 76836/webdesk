@@ -307,3 +307,32 @@ html, body {
   margin-left: 6px;
   box-shadow: 0 0 0 2px rgba(255,138,128,0.25);
 }
+
+
+/* Context menu (long-press app) */
+.app-context-menu {
+  position: fixed; z-index: 40;
+  min-width: 200px; max-width: 80vw;
+  background: #2a2f3a; color: #fff;
+  border-radius: 16px; padding: 6px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: grid; gap: 2px;
+}
+.app-context-menu.hidden { display: none !important; }
+.app-context-menu button {
+  border: 0; background: transparent; color: inherit;
+  text-align: left; padding: 12px 14px; border-radius: 12px;
+  font: 15px system-ui, sans-serif; cursor: pointer;
+}
+.app-context-menu button:active { background: rgba(255,255,255,0.1); }
+.app-context-menu button.danger { color: #ffb4ab; }
+
+/* Swap Back / Recents */
+.system-nav.swap-nav { direction: rtl; }
+.system-nav.swap-nav > * { direction: ltr; }
+
+.control-center {
+  max-height: min(78vh, 640px);
+  overflow-y: auto;
+}

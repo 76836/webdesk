@@ -2,10 +2,14 @@ const STORAGE_KEYS = {
   layout: 'webdesk.mobile.v1.layout',
   wallpaper: 'webdesk.mobile.v1.wallpaper',
   brightness: 'webdesk.mobile.v1.brightness',
-  dock: 'webdesk.mobile.v1.dock'
+  dock: 'webdesk.mobile.v1.dock',
+  swapNav: 'webdesk.mobile.v1.swapNav',
+  verbose: 'webdesk.mobile.v1.verbose',
+  notifyErrors: 'webdesk.mobile.v1.notifyErrors',
+  appMeta: 'webdesk.mobile.v1.appMeta'
 };
 const BUILTIN = [
-  { id: 'settings', name: 'Settings', url: '../../v4/apps/settings.html', glyph: '⚙️', iconUrl: '../../images/icons/settings.png' },
+  { id: 'settings', name: 'Settings', url: './settings.html', glyph: '⚙️', iconUrl: '../../images/icons/settings.png' },
   { id: 'files', name: 'Files', url: '../../v4/apps/files.html', glyph: '📁', iconUrl: '../../images/icons/files.png' },
   { id: 'appmaker', name: 'AppCenter', url: '../../v4/apps/appmaker.html', glyph: '🧩', iconUrl: 'https://76836.github.io/AppCenter/apple-touch-icon.png' },
   { id: 'jsconsole', name: 'JS Console', url: '../../v4/apps/jsconsole.html', glyph: '>_', iconUrl: null }
@@ -80,18 +84,54 @@ function applyIcon(el, a) {
     img.classList.add('hidden'); glyph.classList.remove('hidden'); glyph.textContent = a.glyph || '📦';
   }
 }
+function loadAppMeta() {
+  return parse(localStorage.getItem(STORAGE_KEYS.appMeta)) || {};
+}
+function saveAppMeta(m) {
+  localStorage.setItem(STORAGE_KEYS.appMeta, JSON.stringify(m || {}));
+}
+function effectiveApp(a) {
+  if (!a) return a;
+  const meta = loadAppMeta()[a.id] || {};
+  return { ...a, name: meta.name || a.name, iconUrl: meta.iconUrl != null ? meta.iconUrl : a.iconUrl, glyph: meta.glyph || a.glyph };
+}
+function hideAppMenu() {
+  document.getElementById('app-context-menu')?.classList.add('hidden');
+}
+function showAppMenu(a, x, y) {
+  const menu = document.getElementById('app-context-menu');
+  if (!menu) return;
+  menu.dataset.appId = a.id;
+  menu.classList.remove('hidden');
+  const pad = 12;
+  const rect = menu.getBoundingClientRect();
+  let left = Math.min(Math.max(pad, x - 20), window.innerWidth - rect.width - pad);
+  let top = Math.min(Math.max(pad, y - 10), window.innerHeight - rect.height - pad);
+  menu.style.left = left + 'px';
+  menu.style.top = top + 'px';
+}
 function makeIcon(a, { dock = false } = {}) {
+  a = effectiveApp(a);
   const el = document.getElementById('app-icon-template').content.firstElementChild.cloneNode(true);
   el.dataset.itemId = a.id; applyIcon(el, a);
   el.querySelector('.badge-remove').addEventListener('click', (e) => { e.stopPropagation(); removeFromHome(a.id); });
-  let t = null;
+  let t = null, longPress = false, sx = 0, sy = 0;
   const clear = () => { if (t) { clearTimeout(t); t = null; } };
-  el.addEventListener('pointerdown', () => { t = setTimeout(() => setEditMode(true), 500); });
+  el.addEventListener('pointerdown', (e) => {
+    longPress = false; sx = e.clientX; sy = e.clientY;
+    t = setTimeout(() => {
+      longPress = true;
+      showAppMenu(a, e.clientX || sx, e.clientY || sy);
+    }, 520);
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (t && (Math.abs(e.clientX - sx) > 12 || Math.abs(e.clientY - sy) > 12)) clear();
+  });
   el.addEventListener('pointerup', clear);
   el.addEventListener('pointerleave', clear);
   el.addEventListener('pointercancel', clear);
   el.addEventListener('click', (e) => {
-    if (editMode || e.target.closest('.badge-remove')) return;
+    if (editMode || longPress || e.target.closest('.badge-remove')) return;
     openApp(a.id);
   });
   if (!dock) bindDrag(el);
@@ -183,6 +223,17 @@ function openApp(id) {
   appLayer.classList.remove('hidden');
   recentsEl.classList.add('hidden'); appPickerEl.classList.add('hidden'); setEditMode(false);
 }
+function forceStopApp(id) {
+  const f = frames.get(id);
+  if (f) {
+    try { f.src = 'about:blank'; } catch (_) {}
+    f.remove();
+    frames.delete(id);
+  }
+  history = history.filter((x) => x !== id);
+  if (current === id) { current = null; appLayer.classList.add('hidden'); }
+  try { window.WebDeskLog && window.WebDeskLog.write('info', 'shell', 'force-stop ' + id); } catch (_) {}
+}
 function closeApp(id) {
   const f = frames.get(id); if (f) { f.remove(); frames.delete(id); }
   history = history.filter((x) => x !== id);
@@ -214,6 +265,28 @@ function renderRecents() {
     card.innerHTML = `<div class="recents-card-chrome">${ico}<span class="label">${a.name}</span><span class="dismiss" role="button">×</span></div><div class="recents-shot" data-letter="${letter}"></div>`;
     card.querySelector('.dismiss').addEventListener('click', (e) => { e.stopPropagation(); closeApp(id); });
     card.addEventListener('click', (e) => { if (!e.target.closest('.dismiss')) openApp(id); });
+    // Swipe up to dismiss
+    let ry0 = null, rActive = false;
+    card.addEventListener('touchstart', (e) => { ry0 = e.touches[0].clientY; rActive = true; card.style.transition = 'none'; }, { passive: true });
+    card.addEventListener('touchmove', (e) => {
+      if (!rActive || ry0 == null) return;
+      const dy = e.touches[0].clientY - ry0;
+      if (dy < 0) card.style.transform = 'translateY(' + dy + 'px) scale(' + Math.max(0.88, 1 + dy / 600) + ')';
+    }, { passive: true });
+    card.addEventListener('touchend', (e) => {
+      if (!rActive || ry0 == null) return;
+      const dy = (e.changedTouches[0]?.clientY ?? ry0) - ry0;
+      card.style.transition = 'transform 0.18s ease, opacity 0.18s ease';
+      if (dy < -80) {
+        card.style.transform = 'translateY(-120%)';
+        card.style.opacity = '0';
+        setTimeout(() => closeApp(id), 160);
+      } else {
+        card.style.transform = '';
+        card.style.opacity = '';
+      }
+      ry0 = null; rActive = false;
+    });
     recentsListEl.append(card);
   });
 }
@@ -258,6 +331,26 @@ function setWallpaper(nameOrUrl) {
     shell.style.backgroundImage = 'url(\'' + String(v).replace(/'/g, '%27') + '\')';
   }
 }
+function applySwapNav(on) {
+  const nav = document.querySelector('.system-nav');
+  if (!nav) return;
+  nav.classList.toggle('swap-nav', !!on);
+  localStorage.setItem(STORAGE_KEYS.swapNav, on ? '1' : '0');
+}
+function verboseOn() {
+  return localStorage.getItem(STORAGE_KEYS.verbose) !== '0';
+}
+function notifyErrorsOn() {
+  return localStorage.getItem(STORAGE_KEYS.notifyErrors) !== '0';
+}
+function shellLog(level, src, msg) {
+  try { window.WebDeskLog && window.WebDeskLog.write(level, src, msg); } catch (_) {}
+  if (level === 'error' && notifyErrorsOn()) {
+    pushNotif({ title: src || 'Error', body: msg, level: 'error', source: src || 'shell' });
+  } else if (verboseOn() && level !== 'error') {
+    // verbose info stays in log only
+  }
+}
 function setBrightness(v) {
   shell.style.filter = `brightness(${Number(v) / 100})`;
   localStorage.setItem(STORAGE_KEYS.brightness, String(v));
@@ -284,7 +377,9 @@ function pushNotif(n) {
   const list = [item, ...loadNotifs()].slice(0, NOTIF_MAX);
   saveNotifs(list);
   renderNotifs();
-  // brief open control center on errors so user sees them
+  try {
+    window.WebDeskLog && window.WebDeskLog.write(item.level === 'error' ? 'error' : 'info', item.source || 'notify', item.title + (item.body ? ' — ' + item.body : ''));
+  } catch (_) {}
   if (item.level === 'error' && ccEl) {
     ccEl.classList.remove('hidden');
   }
@@ -329,6 +424,8 @@ function boot() {
   brightnessSlider.value = b; setBrightness(b);
   renderHome(); clocks(); setInterval(clocks, 30000);
   renderNotifs();
+  applySwapNav(localStorage.getItem(STORAGE_KEYS.swapNav) === '1');
+  shellLog('info', 'shell', 'WebDesk Mobile boot');
 }
 function bind() {
   document.getElementById('nav-home').addEventListener('click', goHome);
@@ -355,11 +452,32 @@ function bind() {
       if (act === 'maximize') appLayer.classList.toggle('maximized');
     });
   });
+  function openCC() { ccEl.classList.remove('hidden'); }
+  function closeCC() { ccEl.classList.add('hidden'); }
   statusBar.addEventListener('click', () => ccEl.classList.toggle('hidden'));
-  let y0 = null;
-  statusBar.addEventListener('touchstart', (e) => { y0 = e.touches[0].clientY; }, { passive: true });
-  statusBar.addEventListener('touchmove', (e) => {
-    if (y0 != null && e.touches[0].clientY - y0 > 20) ccEl.classList.remove('hidden');
+  // Swipe down on home (or status bar) → notification / control center
+  let hy0 = null, homeSwipe = false;
+  function bindSwipeDownOpen(el) {
+    if (!el) return;
+    el.addEventListener('touchstart', (e) => {
+      if (!appLayer.classList.contains('hidden')) return;
+      if (!recentsEl.classList.contains('hidden')) return;
+      hy0 = e.touches[0].clientY; homeSwipe = true;
+    }, { passive: true });
+    el.addEventListener('touchmove', (e) => {
+      if (!homeSwipe || hy0 == null) return;
+      if (e.touches[0].clientY - hy0 > 48) { openCC(); homeSwipe = false; hy0 = null; }
+    }, { passive: true });
+    el.addEventListener('touchend', () => { hy0 = null; homeSwipe = false; });
+  }
+  bindSwipeDownOpen(statusBar);
+  bindSwipeDownOpen(homeEl);
+  bindSwipeDownOpen(pagesEl);
+  // Swipe up inside CC or tap outside → close
+  let ccy0 = null;
+  ccEl.addEventListener('touchstart', (e) => { ccy0 = e.touches[0].clientY; }, { passive: true });
+  ccEl.addEventListener('touchmove', (e) => {
+    if (ccy0 != null && e.touches[0].clientY - ccy0 < -40) closeCC();
   }, { passive: true });
   brightnessSlider.addEventListener('input', (e) => setBrightness(e.target.value));
   const clearBtn = document.getElementById('btn-clear-notifs');
@@ -367,7 +485,8 @@ function bind() {
 
   if (wallpaperSelect) wallpaperSelect.addEventListener('change', (e) => setWallpaper(e.target.value));
   document.addEventListener('click', (e) => {
-    if (!ccEl.classList.contains('hidden') && !ccEl.contains(e.target) && !statusBar.contains(e.target)) ccEl.classList.add('hidden');
+    if (!ccEl.classList.contains('hidden') && !ccEl.contains(e.target) && !statusBar.contains(e.target)) closeCC();
+    if (!e.target.closest('#app-context-menu') && !e.target.closest('.app-icon')) hideAppMenu();
   });
   pagesEl.addEventListener('scroll', () => {
     const i = Math.round(pagesEl.scrollLeft / Math.max(1, pagesEl.clientWidth));
@@ -391,6 +510,14 @@ function bind() {
     if (d.type === 'webdesk:set-wallpaper' && typeof d.wallpaper === 'string') {
       setWallpaper(d.wallpaper);
     }
+    if (d.type === 'WebDeskLog') {
+      try {
+        window.WebDeskLog && window.WebDeskLog.write(d.level || 'log', d.src || 'iframe', d.msg || d.message || '');
+      } catch (_) {}
+      if ((d.level === 'error' || d.level === 'warn') && notifyErrorsOn()) {
+        pushNotif({ title: d.src || 'Error', body: d.msg || d.message || '', level: d.level === 'warn' ? 'info' : 'error', source: d.src || 'log' });
+      }
+    }
     if (d.type === 'webdesk:notify' || d.type === 'siloxane:error') {
       pushNotif({
         title: d.title || (d.type === 'siloxane:error' ? 'Siloxane error' : 'Notification'),
@@ -400,7 +527,72 @@ function bind() {
         at: d.at
       });
     }
+    if (d.type === 'webdesk:set-brightness') setBrightness(d.value);
+    if (d.type === 'webdesk:set-swap-nav') applySwapNav(!!d.value);
+    if (d.type === 'webdesk:set-verbose') localStorage.setItem(STORAGE_KEYS.verbose, d.value ? '1' : '0');
+    if (d.type === 'webdesk:open-app' && d.id) openApp(d.id);
+    if (d.type === 'webdesk:notifs-cleared') { clearNotifs(); }
     if (d.type === 'registerApp' || d.type === 'unregisterApp') setTimeout(() => { rebuildCatalog(); renderHome(); }, 40);
+  });
+
+  // App context menu actions
+  const menu = document.getElementById('app-context-menu');
+  if (menu) {
+    menu.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const id = menu.dataset.appId;
+      const act = btn.dataset.action;
+      hideAppMenu();
+      if (!id) return;
+      if (act === 'open') openApp(id);
+      if (act === 'force-stop') forceStopApp(id);
+      if (act === 'info') {
+        const a = effectiveApp(app(id));
+        pushNotif({ title: a?.name || id, body: (a?.url || '') + '\n' + id, level: 'info', source: 'app-info' });
+        openCC();
+      }
+      if (act === 'edit-name') {
+        const a = app(id);
+        const name = prompt('App name', effectiveApp(a)?.name || id);
+        if (name) {
+          const m = loadAppMeta();
+          m[id] = { ...(m[id] || {}), name };
+          saveAppMeta(m);
+          renderHome();
+        }
+      }
+      if (act === 'edit-icon') {
+        const a = app(id);
+        const iconUrl = prompt('Icon URL (empty = default glyph)', effectiveApp(a)?.iconUrl || '');
+        if (iconUrl != null) {
+          const m = loadAppMeta();
+          m[id] = { ...(m[id] || {}), iconUrl };
+          saveAppMeta(m);
+          renderHome();
+        }
+      }
+      if (act === 'uninstall') {
+        if (!confirm('Remove ' + id + ' from home and store list?')) return;
+        removeFromHome(id);
+        forceStopApp(id);
+        try {
+          const apps = JSON.parse(localStorage.getItem('WebDesk_custom_apps') || '[]').filter((x) => x.id !== id && x.package_id !== id);
+          localStorage.setItem('WebDesk_custom_apps', JSON.stringify(apps));
+        } catch (_) {}
+        rebuildCatalog(); renderHome();
+        shellLog('info', 'shell', 'uninstalled ' + id);
+      }
+    });
+  }
+
+  // Global error → log + optional notify
+  window.addEventListener('error', (ev) => {
+    shellLog('error', 'window', (ev.message || 'error') + (ev.filename ? ' @ ' + ev.filename + ':' + ev.lineno : ''));
+  });
+  window.addEventListener('unhandledrejection', (ev) => {
+    const r = ev.reason;
+    shellLog('error', 'promise', r && r.message ? r.message : String(r));
   });
   window.addEventListener('storage', (e) => {
     if (e.key === 'WebDesk_custom_apps' || e.key === 'WebDesk_apps') { rebuildCatalog(); renderHome(); }
@@ -423,6 +615,11 @@ function bind() {
       dump(n) { return this.lines.slice(-(n || 100)); }
     };
     window.WebDeskLog = log;
+    window.addEventListener('message', (ev) => {
+      const d = ev.data;
+      if (!d || d.type !== 'WebDeskLog') return;
+      try { log.write(d.level || 'log', d.src || 'iframe', d.msg || ''); } catch (_) {}
+    });
     ['log', 'warn', 'error', 'info'].forEach((level) => {
       const orig = console[level].bind(console);
       console[level] = (...args) => {

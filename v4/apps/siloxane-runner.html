@@ -25,6 +25,17 @@
   const params = new URLSearchParams(location.search);
   const packageId = params.get('id') || params.get('package_id');
 
+  function slog(level, msg) {
+    const payload = {
+      type: 'WebDeskLog',
+      level: level || 'log',
+      src: 'siloxane',
+      msg: String(msg)
+    };
+    try { window.parent && window.parent.postMessage(payload, '*'); } catch (_) {}
+    try { window.top && window.top !== window && window.top.postMessage(payload, '*'); } catch (_) {}
+    try { console[level === 'error' ? 'error' : level === 'warn' ? 'warn' : 'log']('[siloxane]', msg); } catch (_) {}
+  }
   function notifyParent(title, body, level) {
     const payload = {
       type: 'webdesk:notify',
@@ -35,6 +46,7 @@
       packageId: packageId || null,
       at: Date.now()
     };
+    slog(level === 'error' ? 'error' : 'info', (title || 'Siloxane') + ': ' + (body || ''));
     try { window.parent && window.parent.postMessage(payload, '*'); } catch (_) {}
     try { window.top && window.top !== window && window.top.postMessage(payload, '*'); } catch (_) {}
   }
@@ -69,6 +81,7 @@
   }
 
   msg.textContent = 'Reading package from storage…';
+  slog('info', 'getPackage ' + packageId);
   let rec;
   try {
     rec = await withTimeout(WebDeskSiloxane.getPackage(packageId), 15000, 'Package storage read');
@@ -100,6 +113,7 @@
     }
     frame.style.display = 'block';
     boot.style.display = 'none';
+    slog('info', 'launch remote ' + cfg.start_url);
     frame.src = cfg.start_url;
     return;
   }
@@ -112,6 +126,7 @@
   }
 
   msg.textContent = 'Preparing ' + paths.length + ' files…';
+  slog('info', 'offline files=' + paths.length);
 
   function mimeFor(path) {
     const p = path.toLowerCase();
@@ -245,6 +260,7 @@
   frame.style.background = 'transparent';
   frame.style.display = 'block';
   boot.style.display = 'none';
+  slog('info', 'launch blob page');
   frame.src = pageUrl;
 })().catch(function (e) {
   const boot = document.getElementById('boot');
