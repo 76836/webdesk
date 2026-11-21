@@ -7,9 +7,10 @@ const STORAGE_KEYS = {
 const BUILTIN = [
   { id: 'settings', name: 'Settings', url: '../../v4/apps/settings.html', glyph: '⚙️', iconUrl: '../../images/icons/settings.png' },
   { id: 'files', name: 'Files', url: '../../v4/apps/files.html', glyph: '📁', iconUrl: '../../images/icons/files.png' },
-  { id: 'appmaker', name: 'AppCenter', url: '../../v4/apps/appmaker.html', glyph: '🧩', iconUrl: 'https://76836.github.io/AppCenter/apple-touch-icon.png' }
+  { id: 'appmaker', name: 'AppCenter', url: '../../v4/apps/appmaker.html', glyph: '🧩', iconUrl: 'https://76836.github.io/AppCenter/apple-touch-icon.png' },
+  { id: 'jsconsole', name: 'JS Console', url: '../../v4/apps/jsconsole.html', glyph: '>_', iconUrl: null }
 ];
-const DEFAULT_LAYOUT = { pages: [['search', 'settings', 'files'], ['appmaker']] };
+const DEFAULT_LAYOUT = { pages: [['search', 'settings', 'files'], ['appmaker', 'jsconsole']] };
 const DEFAULT_DOCK = ['settings', 'appmaker', 'files'];
 const NOTIF_KEY = 'webdesk.mobile.v1.notifications';
 const NOTIF_MAX = 40;
@@ -166,32 +167,11 @@ function ensureFrame(id) {
   iframe.src = a.url;
   iframe.classList.add('hidden');
   iframe.allow = 'clipboard-read; clipboard-write; fullscreen';
-  iframe.setAttribute('allowtransparency', 'true');
   iframe.setAttribute('frameborder', '0');
-  iframe.style.cssText = 'background:transparent!important;background-color:transparent!important;border:0;width:100%;height:100%;';
-  iframe.addEventListener('load', () => {
-    try {
-      const doc = iframe.contentDocument;
-      if (!doc) return;
-      // Stop Android/Chrome auto-dark inversion (black becoming white) without forcing a scheme on the iframe element
-      if (doc.head && !doc.querySelector('meta[name="color-scheme"]')) {
-        const meta = doc.createElement('meta');
-        meta.name = 'color-scheme';
-        meta.content = 'light dark';
-        doc.head.insertBefore(meta, doc.head.firstChild);
-      }
-      const s = doc.createElement('style');
-      s.setAttribute('data-wd-mobile-shell', '1');
-      s.textContent = [
-        ':root{color-scheme:light dark;}',
-        /* transparent page default so wallpaper can show; apps that set their own bg still win if more specific */
-        'html,body{background-color:transparent!important;}'
-      ].join('');
-      (doc.head || doc.documentElement).appendChild(s);
-    } catch (_) {
-      /* cross-origin */
-    }
-  });
+  // Shell styles stay on the iframe element only — never inject CSS into the app document
+  iframe.style.cssText = 'border:0;width:100%;height:100%;background:transparent;';
+  // Isolation: empty sandbox is too strict; use credentialless where supported without touching app CSS
+  try { iframe.referrerPolicy = 'no-referrer-when-downgrade'; } catch (_) {}
   appHost.append(iframe); frames.set(id, iframe); return iframe;
 }
 function openApp(id) {
@@ -426,5 +406,68 @@ function bind() {
     if (e.key === 'WebDesk_custom_apps' || e.key === 'WebDesk_apps') { rebuildCatalog(); renderHome(); }
   });
 }
+
+(function installMobileWebDeskBridge() {
+  if (!window.WebDeskLog) {
+    const log = {
+      max: 400,
+      lines: [],
+      subs: new Set(),
+      write(level, src, msg) {
+        const line = { t: Date.now(), level: level || 'log', src: src || 'app', msg: String(msg) };
+        this.lines.push(line);
+        while (this.lines.length > this.max) this.lines.shift();
+        this.subs.forEach((fn) => { try { fn(line); } catch (_) {} });
+      },
+      on(fn) { this.subs.add(fn); return () => this.subs.delete(fn); },
+      dump(n) { return this.lines.slice(-(n || 100)); }
+    };
+    window.WebDeskLog = log;
+    ['log', 'warn', 'error', 'info'].forEach((level) => {
+      const orig = console[level].bind(console);
+      console[level] = (...args) => {
+        orig(...args);
+        try {
+          const msg = args.map((a) => {
+            if (typeof a === 'string') return a;
+            if (a && typeof a === 'object' && a.message) return a.message;
+            try { return JSON.stringify(a); } catch (_) { return String(a); }
+          }).join(' ');
+          log.write(level, 'console', msg);
+        } catch (_) {}
+      };
+    });
+  }
+  // Minimal WebDesk surface so jsconsole.html commands work on Mobile
+  window.WebDesk = window.WebDesk || {};
+  window.WebDesk.appManager = window.WebDesk.appManager || {
+    get apps() {
+      const m = new Map();
+      try {
+        (typeof catalog !== 'undefined' ? catalog : []).forEach((a) => {
+          m.set(a.id, { title: a.name, url: a.url, WDNative: !!a.WDNative });
+        });
+      } catch (_) {}
+      return m;
+    }
+  };
+  window.WebDesk.windowManager = window.WebDesk.windowManager || {
+    get openWindows() {
+      const m = new Map();
+      try {
+        frames.forEach((iframe, id) => {
+          const a = typeof app === 'function' ? app(id) : null;
+          m.set(id, {
+            config: { title: (a && a.name) || id },
+            state: iframe.classList.contains('hidden') ? 'hidden' : 'open',
+            native: false
+          });
+        });
+      } catch (_) {}
+      return m;
+    }
+  };
+})();
+
 boot();
 bind();

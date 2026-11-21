@@ -129,9 +129,8 @@ html, body {
   height: 100%;
   border: 0;
   border-radius: 0;
-  /* Do NOT set color-scheme here — it inverts black↔white inside apps on Android */
-  background: transparent !important;
-  background-color: transparent !important;
+  /* No color-scheme / injected styles — app documents are fully isolated */
+  background: #000;
 }
 
 /* Android Overview */
